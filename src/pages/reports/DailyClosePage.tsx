@@ -166,61 +166,61 @@ const DailyClosePage: React.FC = () => {
           </div>
 
           {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-white rounded-xl shadow-card p-5 border-r-4 border-green-500">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
-                  <DollarSign size={20} className="text-green-600" />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-6">
+            <div className="bg-white rounded-xl shadow-card p-4 lg:p-5 border-r-4 border-green-500">
+              <div className="flex items-center gap-2 lg:gap-3 mb-2">
+                <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-lg bg-green-100 flex items-center justify-center">
+                  <DollarSign size={18} className="text-green-600 lg:w-5 lg:h-5" />
                 </div>
-                <span className="text-sm text-gray-500">المبيعات (كاش)</span>
+                <span className="text-xs lg:text-sm text-gray-500">المبيعات (كاش)</span>
               </div>
-              <p className="text-2xl font-bold text-gray-800">{report.totalPaid.toFixed(3)}</p>
+              <p className="text-lg lg:text-2xl font-bold text-gray-800">{report.totalPaid.toFixed(3)}</p>
               <p className="text-xs text-gray-400 mt-1">{report.paidInvoices.length} فاتورة</p>
             </div>
 
-            <div className="bg-white rounded-xl shadow-card p-5 border-r-4 border-amber-500">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
-                  <Clock size={20} className="text-amber-600" />
+            <div className="bg-white rounded-xl shadow-card p-4 lg:p-5 border-r-4 border-amber-500">
+              <div className="flex items-center gap-2 lg:gap-3 mb-2">
+                <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-lg bg-amber-100 flex items-center justify-center">
+                  <Clock size={18} className="text-amber-600 lg:w-5 lg:h-5" />
                 </div>
-                <span className="text-sm text-gray-500">معلقة</span>
+                <span className="text-xs lg:text-sm text-gray-500">معلقة</span>
               </div>
-              <p className="text-2xl font-bold text-gray-800">{report.totalPending.toFixed(3)}</p>
+              <p className="text-lg lg:text-2xl font-bold text-gray-800">{report.totalPending.toFixed(3)}</p>
               <p className="text-xs text-gray-400 mt-1">{report.pendingInvoices.length} فاتورة</p>
             </div>
 
-            <div className="bg-white rounded-xl shadow-card p-5 border-r-4 border-orange-500">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center">
-                  <CreditCard size={20} className="text-orange-600" />
+            <div className="bg-white rounded-xl shadow-card p-4 lg:p-5 border-r-4 border-orange-500">
+              <div className="flex items-center gap-2 lg:gap-3 mb-2">
+                <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-lg bg-orange-100 flex items-center justify-center">
+                  <CreditCard size={18} className="text-orange-600 lg:w-5 lg:h-5" />
                 </div>
-                <span className="text-sm text-gray-500">آجل</span>
+                <span className="text-xs lg:text-sm text-gray-500">آجل</span>
               </div>
-              <p className="text-2xl font-bold text-gray-800">{report.totalCredit.toFixed(3)}</p>
+              <p className="text-lg lg:text-2xl font-bold text-gray-800">{report.totalCredit.toFixed(3)}</p>
               <p className="text-xs text-gray-400 mt-1">{report.creditInvoices.length} فاتورة</p>
             </div>
 
-            <div className="bg-white rounded-xl shadow-card p-5 border-r-4 border-red-500">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
-                  <CreditCard size={20} className="text-red-600" />
+            <div className="bg-white rounded-xl shadow-card p-4 lg:p-5 border-r-4 border-red-500">
+              <div className="flex items-center gap-2 lg:gap-3 mb-2">
+                <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-lg bg-red-100 flex items-center justify-center">
+                  <CreditCard size={18} className="text-red-600 lg:w-5 lg:h-5" />
                 </div>
-                <span className="text-sm text-gray-500">المصروفات</span>
+                <span className="text-xs lg:text-sm text-gray-500">المصروفات</span>
               </div>
-              <p className="text-2xl font-bold text-gray-800">{report.totalExpenses.toFixed(3)}</p>
+              <p className="text-lg lg:text-2xl font-bold text-gray-800">{report.totalExpenses.toFixed(3)}</p>
               <p className="text-xs text-gray-400 mt-1">{report.expenses.length} مصروف</p>
             </div>
           </div>
 
           {/* Net Cash - prominent */}
-          <div className="bg-gradient-to-l from-gold-500 to-gold-600 rounded-xl p-6 mb-6 shadow-lg">
-            <div className="flex items-center justify-between">
+          <div className="bg-gradient-to-l from-gold-500 to-gold-600 rounded-xl p-4 lg:p-6 mb-6 shadow-lg">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <div>
-                <p className="text-gray-800 font-medium">صافي الكاش (بعد المصروفات)</p>
+                <p className="text-gray-800 font-medium text-sm lg:text-base">صافي الكاش (بعد المصروفات)</p>
                 <p className="text-xs text-gray-700 mt-1">= المبيعات الكاش - المصروفات</p>
               </div>
-              <div className="text-left">
-                <p className="text-3xl font-bold text-gray-900">{report.netCash.toFixed(3)}</p>
+              <div className="text-right sm:text-left">
+                <p className="text-2xl lg:text-3xl font-bold text-gray-900">{report.netCash.toFixed(3)}</p>
                 <p className="text-sm text-gray-800">د.أ</p>
               </div>
             </div>
