@@ -9,43 +9,32 @@ interface LogoProps {
 
 const Logo: React.FC<LogoProps> = ({ variant = 'full', size = 'md', theme = 'dark', className = '' }) => {
   const sizes = {
-    sm: { icon: 32, text: 'text-lg', subtitle: 'text-[8px]' },
-    md: { icon: 40, text: 'text-xl', subtitle: 'text-[9px]' },
-    lg: { icon: 64, text: 'text-3xl', subtitle: 'text-xs' },
+    sm: { img: 32, text: 'text-lg', subtitle: 'text-[8px]' },
+    md: { img: 40, text: 'text-xl', subtitle: 'text-[9px]' },
+    lg: { img: 64, text: 'text-3xl', subtitle: 'text-xs' },
   };
 
   const s = sizes[size];
   const goldColor = '#D4A843';
   const textColor = theme === 'dark' ? 'text-white' : 'text-gray-900';
 
-  const IconSVG = () => (
-    <svg
-      width={s.icon}
-      height={s.icon}
-      viewBox="0 0 64 64"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className="flex-shrink-0"
+  const LogoImg = () => (
+    <div
+      className="flex-shrink-0 rounded-lg overflow-hidden bg-white"
+      style={{ width: s.img, height: s.img, padding: 2 }}
     >
-      <rect width="64" height="64" rx="14" fill={goldColor} />
-      <text
-        x="32"
-        y="42"
-        textAnchor="middle"
-        fontFamily="serif"
-        fontWeight="bold"
-        fontSize="32"
-        fill="#1a1a2e"
-      >
-        MD
-      </text>
-    </svg>
+      <img
+        src="/image.png"
+        alt="Magic Decoration Logo"
+        style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+      />
+    </div>
   );
 
   if (variant === 'icon') {
     return (
       <div className={className}>
-        <IconSVG />
+        <LogoImg />
       </div>
     );
   }
@@ -65,7 +54,7 @@ const Logo: React.FC<LogoProps> = ({ variant = 'full', size = 'md', theme = 'dar
 
   return (
     <div className={`flex items-center gap-3 ${className}`}>
-      <IconSVG />
+      <LogoImg />
       <div className="flex flex-col">
         <span className={`${s.text} font-bold tracking-wider`} style={{ color: goldColor }}>
           MAGIC
