@@ -1,0 +1,235 @@
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --gold-primary: #C9A84C;
+  --gold-light: #E8D59A;
+  --gold-dark: #9A7B2C;
+  --sidebar-bg: #1A1A2E;
+  --sidebar-hover: #2A2A3E;
+  --sidebar-active: #3A3A4E;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  direction: rtl;
+  font-family: 'Cairo', sans-serif;
+}
+
+body {
+  font-family: 'Cairo', sans-serif;
+  background-color: #F5F5F5;
+  min-height: 100vh;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+/* Status colors */
+.status-paid {
+  background-color: #22C55E;
+  color: white;
+}
+
+.status-pending {
+  background-color: #F59E0B;
+  color: white;
+}
+
+.status-credit {
+  background-color: #F97316;
+  color: white;
+}
+
+.status-overdue {
+  background-color: #EF4444;
+  color: white;
+}
+
+.status-cancelled {
+  background-color: #6B7280;
+  color: white;
+}
+
+/* Gold accent for buttons and highlights */
+.btn-gold {
+  background: linear-gradient(135deg, var(--gold-primary) 0%, var(--gold-dark) 100%);
+  color: #1A1A2E;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-gold:hover {
+  background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold-primary) 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(201, 168, 76, 0.4);
+}
+
+/* Input focus styles */
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--gold-primary) !important;
+  box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.2);
+}
+
+/* Table styles */
+.table-header {
+  background-color: #1A1A2E;
+  color: white;
+}
+
+.table-row:nth-child(even) {
+  background-color: #F9F9F9;
+}
+
+.table-row:hover {
+  background-color: #F0F0F0;
+}
+
+/* Card styles */
+.card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  padding: 24px;
+}
+
+/* Print styles */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .print-area, .print-area * {
+    visibility: visible;
+  }
+
+  .print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    direction: rtl;
+    padding: 20mm;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  aside, header, .sidebar, .top-nav, .notification-bell {
+    display: none !important;
+  }
+
+  main {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .print-invoice {
+    width: 210mm;
+    min-height: 297mm;
+    padding: 20mm;
+    margin: 0 auto;
+    background: white;
+    font-family: 'Cairo', sans-serif;
+  }
+
+  .craftsman-card-print {
+    width: 85mm;
+    height: 54mm;
+    border: 1px solid #ccc;
+    padding: 5mm;
+    margin: 5mm auto;
+    page-break-inside: avoid;
+  }
+
+  .shadow-card, .shadow-lg {
+    box-shadow: none !important;
+  }
+
+  .rounded-xl {
+    border: 1px solid #e5e7eb;
+  }
+
+  .hidden.print\\:block {
+    display: block !important;
+    visibility: visible !important;
+  }
+}
+
+@page {
+  size: A4;
+  margin: 0;
+}
+
+@page card {
+  size: 85mm 54mm;
+  margin: 0;
+}
+
+/* Animation classes */
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Loading spinner */
+.spinner {
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid var(--gold-primary);
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* RTL specific fixes */
+.ltr-text {
+  direction: ltr;
+  text-align: left;
+}
+
+/* Badge styles */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
