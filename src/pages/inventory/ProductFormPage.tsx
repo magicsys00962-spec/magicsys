@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowRight, Save, Loader, Plus, Trash2, Check } from 'lucide-react';
+import { ArrowRight, Save, Loader, Plus, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../stores/authStore';
-import type { ProductCategory, Warehouse } from '../../types';
+import type { ProductCategory, Warehouse, ProductUnitRecord } from '../../types';
 import toast from 'react-hot-toast';
 
 interface ProductColor {
@@ -12,11 +12,9 @@ interface ProductColor {
   hex_code: string;
 }
 
-interface ColorVariant {
-  color_id: string;
-  color_name: string;
-  hex_code: string;
+interface WarehouseStock {
   warehouse_id: string;
+  selected: boolean;
   quantity: number;
 }
 
@@ -31,9 +29,14 @@ const ProductFormPage: React.FC = () => {
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [productColors, setProductColors] = useState<ProductColor[]>([]);
+  const [productUnits, setProductUnits] = useState<ProductUnitRecord[]>([]);
+  const [warehouseStocks, setWarehouseStocks] = useState<WarehouseStock[]>([]);
 
-  // Color variants for new product
-  const [colorVariants, setColorVariants] = useState<ColorVariant[]>([]);
+  const [showAddColor, setShowAddColor] = useState(false);
+  const [newColorName, setNewColorName] = useState('');
+  const [newColorHex, setNewColorHex] = useState('#CCCCCC');
+  const [showAddUnit, setShowAddUnit] = useState(false);
+  const [newUnitName, setNewUnitName] = useState('');
 
   const [form, setForm] = useState({
     name: '',
@@ -43,21 +46,37 @@ const ProductFormPage: React.FC = () => {
     color_code: '',
     color_name: '',
     quantity_in_stock: 0,
-    unit: 'box' as 'piece' | 'box' | 'meter' | 'kg',
+    unit: 'piece',
     retail_price: 0,
     wholesale_price: 0,
     craftsman_price: 0,
     minimum_price: 0,
-    wholesale_threshold: 1,
+    purchase_price: 0,
     reorder_level: 0,
+    dimension_length: '',
+    dimension_width: '',
+    dimension_thickness: '',
   });
 
   useEffect(() => {
     fetchCategories();
     fetchWarehouses();
     fetchProductColors();
+    fetchProductUnits();
     if (isEdit) fetchProduct();
   }, [id]);
+
+  useEffect(() => {
+    if (warehouses.length > 0 && !isEdit) {
+      setWarehouseStocks(
+        warehouses.map((wh) => ({
+          warehouse_id: wh.id,
+          selected: user?.warehouse_id ? wh.id === user.warehouse_id : false,
+          quantity: 0,
+        }))
+      );
+    }
+  }, [warehouses, isEdit]);
 
   const fetchCategories = async () => {
     const { data } = await supabase.from('product_categories').select('*').order('name');
@@ -72,6 +91,11 @@ const ProductFormPage: React.FC = () => {
   const fetchProductColors = async () => {
     const { data } = await supabase.from('product_colors').select('*').order('name');
     setProductColors(data || []);
+  };
+
+  const fetchProductUnits = async () => {
+    const { data } = await supabase.from('product_units').select('*').order('created_at');
+    setProductUnits(data || []);
   };
 
   const fetchProduct = async () => {
@@ -93,8 +117,11 @@ const ProductFormPage: React.FC = () => {
           wholesale_price: Number(data.wholesale_price) || 0,
           craftsman_price: Number(data.craftsman_price) || 0,
           minimum_price: Number(data.minimum_price),
-          wholesale_threshold: Number(data.wholesale_threshold),
+          purchase_price: Number(data.purchase_price) || 0,
           reorder_level: Number(data.reorder_level),
+          dimension_length: data.dimension_length ? String(data.dimension_length) : '',
+          dimension_width: data.dimension_width ? String(data.dimension_width) : '',
+          dimension_thickness: data.dimension_thickness ? String(data.dimension_thickness) : '',
         });
       }
     } catch (error) {
@@ -106,29 +133,44 @@ const ProductFormPage: React.FC = () => {
     }
   };
 
-  const toggleColorVariant = (color: ProductColor, warehouseId: string) => {
-    const key = `${color.id}_${warehouseId}`;
-    const existing = colorVariants.find((v) => v.color_id === color.id && v.warehouse_id === warehouseId);
-    if (existing) {
-      setColorVariants((prev) => prev.filter((v) => !(v.color_id === color.id && v.warehouse_id === warehouseId)));
-    } else {
-      setColorVariants((prev) => [...prev, {
-        color_id: color.id,
-        color_name: color.name,
-        hex_code: color.hex_code,
-        warehouse_id: warehouseId,
-        quantity: 0,
-      }]);
+  const handleAddColor = async () => {
+    if (!newColorName.trim()) return;
+    try {
+      const { data, error } = await supabase.rpc('add_product_color', {
+        p_user_id: user?.id,
+        p_name: newColorName.trim(),
+        p_hex_code: newColorHex,
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.message);
+      setProductColors([...productColors, data.color]);
+      setForm({ ...form, color_name: data.color.name, color_code: data.color.hex_code });
+      setNewColorName('');
+      setNewColorHex('#CCCCCC');
+      setShowAddColor(false);
+      toast.success('تم إضافة اللون');
+    } catch (error: any) {
+      toast.error(error.message || 'حدث خطأ');
     }
-    void key;
   };
 
-  const updateVariantQuantity = (colorId: string, warehouseId: string, quantity: number) => {
-    setColorVariants((prev) =>
-      prev.map((v) =>
-        v.color_id === colorId && v.warehouse_id === warehouseId ? { ...v, quantity } : v
-      )
-    );
+  const handleAddUnit = async () => {
+    if (!newUnitName.trim()) return;
+    try {
+      const { data, error } = await supabase.rpc('add_product_unit', {
+        p_user_id: user?.id,
+        p_name: newUnitName.trim(),
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.message);
+      setProductUnits([...productUnits, data.unit]);
+      setForm({ ...form, unit: data.unit.name });
+      setNewUnitName('');
+      setShowAddUnit(false);
+      toast.success('تم إضافة الوحدة');
+    } catch (error: any) {
+      toast.error(error.message || 'حدث خطأ');
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -136,53 +178,63 @@ const ProductFormPage: React.FC = () => {
     setSaving(true);
 
     try {
+      if (!form.purchase_price || form.purchase_price <= 0) {
+        throw new Error('الرجاء إدخال سعر الشراء');
+      }
+
       if (isEdit) {
-        // Edit mode: update single product record
         const { error } = await supabase.from('products').update({
-          ...form,
+          name: form.name,
+          sku_code: form.sku_code,
+          category_id: form.category_id || null,
+          warehouse_id: form.warehouse_id,
+          color_code: form.color_code || null,
+          color_name: form.color_name || null,
+          quantity_in_stock: form.quantity_in_stock,
+          unit: form.unit,
+          retail_price: form.retail_price,
           wholesale_price: form.wholesale_price || null,
           craftsman_price: form.craftsman_price || null,
+          minimum_price: form.minimum_price,
+          purchase_price: form.purchase_price,
+          reorder_level: form.reorder_level,
+          dimension_length: form.dimension_length ? Number(form.dimension_length) : null,
+          dimension_width: form.dimension_width ? Number(form.dimension_width) : null,
+          dimension_thickness: form.dimension_thickness ? Number(form.dimension_thickness) : null,
           updated_at: new Date().toISOString(),
         }).eq('id', id);
         if (error) throw error;
         toast.success('تم تحديث المنتج بنجاح');
         navigate('/inventory');
       } else {
-        // New product: use color variants if any selected
-        if (colorVariants.length > 0) {
-          const { data, error } = await supabase.rpc('add_product_with_colors', {
-            p_user_id: user?.id,
-            p_name: form.name,
-            p_sku_code: form.sku_code,
-            p_category_id: form.category_id || null,
-            p_unit: form.unit,
-            p_retail_price: form.retail_price,
-            p_wholesale_price: form.wholesale_price || null,
-            p_craftsman_price: form.craftsman_price || null,
-            p_minimum_price: form.minimum_price,
-            p_wholesale_threshold: form.wholesale_threshold,
-            p_reorder_level: form.reorder_level,
-            p_color_variants: colorVariants.map((v) => ({
-              color_id: v.color_id,
-              color_name: v.color_name,
-              hex_code: v.hex_code,
-              warehouse_id: v.warehouse_id,
-              quantity: v.quantity,
-            })),
-          });
-          if (error) throw error;
-          if (!data?.success) throw new Error(data?.message);
-          toast.success(`تم إضافة ${colorVariants.length} نسخة من المنتج بنجاح`);
-        } else {
-          // Single product without colors
+        const selectedWarehouses = warehouseStocks.filter((ws) => ws.selected);
+        if (selectedWarehouses.length === 0) {
+          throw new Error('الرجاء اختيار مخزن واحد على الأقل');
+        }
+
+        for (const ws of selectedWarehouses) {
           const { error } = await supabase.from('products').insert({
-            ...form,
+            name: form.name,
+            sku_code: form.sku_code,
+            category_id: form.category_id || null,
+            warehouse_id: ws.warehouse_id,
+            color_code: form.color_code || null,
+            color_name: form.color_name || null,
+            quantity_in_stock: ws.quantity,
+            unit: form.unit,
+            retail_price: form.retail_price,
             wholesale_price: form.wholesale_price || null,
             craftsman_price: form.craftsman_price || null,
+            minimum_price: form.minimum_price,
+            purchase_price: form.purchase_price,
+            reorder_level: form.reorder_level,
+            dimension_length: form.dimension_length ? Number(form.dimension_length) : null,
+            dimension_width: form.dimension_width ? Number(form.dimension_width) : null,
+            dimension_thickness: form.dimension_thickness ? Number(form.dimension_thickness) : null,
           });
           if (error) throw error;
-          toast.success('تم إضافة المنتج بنجاح');
         }
+        toast.success('تم إضافة المنتج بنجاح');
         navigate('/inventory');
       }
     } catch (error: unknown) {
@@ -193,12 +245,16 @@ const ProductFormPage: React.FC = () => {
     }
   };
 
-  const unitOptions = [
-    { value: 'piece', label: 'قطعة' },
-    { value: 'box', label: 'صندوق' },
-    { value: 'meter', label: 'متر' },
-    { value: 'kg', label: 'كيلو' },
-  ];
+  const getUnitLabel = (name: string) => {
+    const labels: Record<string, string> = { piece: 'قطعة', meter: 'متر', box: 'صندوق', kg: 'كيلو' };
+    return labels[name] || name;
+  };
+
+  const handleNumberFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    if (e.target.value === '0') {
+      e.target.select();
+    }
+  };
 
   if (loading) {
     return (
@@ -264,16 +320,26 @@ const ProductFormPage: React.FC = () => {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">الوحدة <span className="text-red-500">*</span></label>
-              <select
-                value={form.unit}
-                onChange={(e) => setForm({ ...form, unit: e.target.value as typeof form.unit })}
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-gold-500 focus:ring-2 focus:ring-gold-200"
-                required
-              >
-                {unitOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
+              <div className="flex gap-2">
+                <select
+                  value={form.unit}
+                  onChange={(e) => setForm({ ...form, unit: e.target.value })}
+                  className="flex-1 px-4 py-2.5 rounded-lg border border-gray-300 focus:border-gold-500 focus:ring-2 focus:ring-gold-200"
+                  required
+                >
+                  {productUnits.map((u) => (
+                    <option key={u.id} value={u.name}>{getUnitLabel(u.name)}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => setShowAddUnit(true)}
+                  className="px-3 py-2.5 rounded-lg border border-gray-300 hover:bg-gray-50 text-gold-600"
+                  title="إضافة وحدة جديدة"
+                >
+                  <Plus size={18} />
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -283,11 +349,11 @@ const ProductFormPage: React.FC = () => {
           <h2 className="text-lg font-semibold text-gray-800 mb-4">التسعير</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {[
+              { key: 'purchase_price', label: 'سعر الشراء', required: true },
               { key: 'retail_price', label: 'سعر المفرق', required: true },
               { key: 'wholesale_price', label: 'سعر الجملة', required: false },
               { key: 'craftsman_price', label: 'سعر الصنايعي', required: false },
               { key: 'minimum_price', label: 'الحد الأدنى للسعر', required: true },
-              { key: 'wholesale_threshold', label: 'حد الجملة (الكمية)', required: false },
               { key: 'reorder_level', label: 'حد التنبيه', required: false },
             ].map(({ key, label, required }) => (
               <div key={key}>
@@ -300,6 +366,7 @@ const ProductFormPage: React.FC = () => {
                   min="0"
                   value={form[key as keyof typeof form] as number}
                   onChange={(e) => setForm({ ...form, [key]: Number(e.target.value) })}
+                  onFocus={handleNumberFocus}
                   className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-gold-500 focus:ring-2 focus:ring-gold-200"
                   required={required}
                 />
@@ -308,168 +375,123 @@ const ProductFormPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Color + Warehouse variants (new product only) */}
-        {!isEdit && (
-          <div className="bg-white rounded-xl shadow-card p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-800">الألوان والمخازن</h2>
-                <p className="text-sm text-gray-500 mt-1">
-                  اختر لون ومخزن وأدخل الكمية لكل مجموعة. كل اختيار سيكون سجلاً منفصلاً في المخزون.
-                </p>
-              </div>
-              {colorVariants.length > 0 && (
-                <span className="bg-gold-100 text-gold-700 text-sm font-semibold px-3 py-1 rounded-full">
-                  {colorVariants.length} نسخة
-                </span>
-              )}
+        {/* Dimensions (optional) */}
+        <div className="bg-white rounded-xl shadow-card p-6">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">القياسات <span className="text-sm font-normal text-gray-400">(اختياري)</span></h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">الطول (سم)</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={form.dimension_length}
+                onChange={(e) => setForm({ ...form, dimension_length: e.target.value })}
+                onFocus={handleNumberFocus}
+                placeholder="—"
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-gold-500 focus:ring-2 focus:ring-gold-200"
+              />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">العرض (سم)</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={form.dimension_width}
+                onChange={(e) => setForm({ ...form, dimension_width: e.target.value })}
+                onFocus={handleNumberFocus}
+                placeholder="—"
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-gold-500 focus:ring-2 focus:ring-gold-200"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">السمك (سم)</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={form.dimension_thickness}
+                onChange={(e) => setForm({ ...form, dimension_thickness: e.target.value })}
+                onFocus={handleNumberFocus}
+                placeholder="—"
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-gold-500 focus:ring-2 focus:ring-gold-200"
+              />
+            </div>
+          </div>
+        </div>
 
-            {productColors.length === 0 ? (
-              <div className="text-center py-6 text-gray-400">
-                <p>لا توجد ألوان مضافة للنظام بعد.</p>
-                <button
-                  type="button"
-                  onClick={() => navigate('/inventory/colors')}
-                  className="mt-2 text-gold-600 font-medium hover:underline"
-                >
-                  اذهب لإضافة ألوان →
+        {/* Color selection */}
+        <div className="bg-white rounded-xl shadow-card p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-800">اللون <span className="text-sm font-normal text-gray-400">(اختياري)</span></h2>
+            <button
+              type="button"
+              onClick={() => setShowAddColor(true)}
+              className="flex items-center gap-1 text-sm text-gold-600 hover:text-gold-700 font-medium"
+            >
+              <Plus size={16} />
+              لون جديد
+            </button>
+          </div>
+
+          {showAddColor && (
+            <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <div className="flex items-center gap-3">
+                <input
+                  type="text"
+                  value={newColorName}
+                  onChange={(e) => setNewColorName(e.target.value)}
+                  placeholder="اسم اللون"
+                  className="flex-1 px-3 py-2 rounded-lg border border-gray-300 focus:border-gold-500 focus:ring-1 focus:ring-gold-200 text-sm"
+                />
+                <input
+                  type="color"
+                  value={newColorHex}
+                  onChange={(e) => setNewColorHex(e.target.value)}
+                  className="w-10 h-10 rounded-lg border border-gray-300 cursor-pointer"
+                />
+                <button type="button" onClick={handleAddColor} className="px-3 py-2 bg-gold-500 text-gray-900 rounded-lg text-sm font-semibold">
+                  إضافة
+                </button>
+                <button type="button" onClick={() => setShowAddColor(false)} className="p-2 hover:bg-gray-200 rounded">
+                  <X size={16} />
                 </button>
               </div>
-            ) : (
-              <div className="space-y-4">
-                {warehouses.map((wh) => (
-                  <div key={wh.id} className="border border-gray-200 rounded-xl overflow-hidden">
-                    <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-                      <h3 className="font-semibold text-gray-700">{wh.name}</h3>
-                    </div>
-                    <div className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                      {productColors.map((color) => {
-                        const selected = colorVariants.find(
-                          (v) => v.color_id === color.id && v.warehouse_id === wh.id
-                        );
-                        return (
-                          <div key={color.id} className="space-y-1.5">
-                            <button
-                              type="button"
-                              onClick={() => toggleColorVariant(color, wh.id)}
-                              className={`w-full flex items-center gap-2 p-2.5 rounded-lg border-2 transition-all text-sm ${
-                                selected
-                                  ? 'border-gold-500 bg-gold-50'
-                                  : 'border-gray-200 hover:border-gray-300'
-                              }`}
-                            >
-                              <div
-                                className="w-5 h-5 rounded-full flex-shrink-0 border border-gray-300"
-                                style={{ backgroundColor: color.hex_code }}
-                              />
-                              <span className="font-medium truncate text-gray-700">{color.name}</span>
-                              {selected && <Check size={14} className="text-gold-600 mr-auto flex-shrink-0" />}
-                            </button>
-                            {selected && (
-                              <input
-                                type="number"
-                                step="0.001"
-                                min="0"
-                                placeholder="الكمية"
-                                value={selected.quantity}
-                                onChange={(e) => updateVariantQuantity(color.id, wh.id, Number(e.target.value))}
-                                className="w-full px-2 py-1.5 text-sm rounded-lg border border-gold-300 focus:border-gold-500 focus:ring-1 focus:ring-gold-200 text-center"
-                              />
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            </div>
+          )}
 
-            {colorVariants.length === 0 && productColors.length > 0 && (
-              <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300 text-center">
-                <p className="text-gray-500 text-sm">لم يتم اختيار أي لون — سيتم إضافة المنتج بدون تحديد لون</p>
-                <p className="text-xs text-gray-400 mt-1">يمكنك تحديد المخزن والكمية في الأسفل</p>
-              </div>
-            )}
-
-            {/* Fallback: single warehouse + quantity when no colors selected */}
-            {colorVariants.length === 0 && (
-              <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-gray-100 pt-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    المخزن <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={form.warehouse_id}
-                    onChange={(e) => setForm({ ...form, warehouse_id: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-gold-500 focus:ring-2 focus:ring-gold-200"
-                    required={colorVariants.length === 0}
-                    disabled={!!user?.warehouse_id}
-                  >
-                    {warehouses.map((wh) => (
-                      <option key={wh.id} value={wh.id}>{wh.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">اللون (اختياري)</label>
-                  <div className="flex gap-2">
-                    {productColors.length > 0 ? (
-                      <select
-                        value={form.color_name}
-                        onChange={(e) => {
-                          const c = productColors.find((p) => p.name === e.target.value);
-                          setForm({ ...form, color_name: e.target.value, color_code: c?.hex_code || '' });
-                        }}
-                        className="flex-1 px-4 py-2.5 rounded-lg border border-gray-300 focus:border-gold-500 focus:ring-2 focus:ring-gold-200"
-                      >
-                        <option value="">بدون لون</option>
-                        {productColors.map((c) => (
-                          <option key={c.id} value={c.name}>{c.name}</option>
-                        ))}
-                      </select>
-                    ) : (
-                      <input
-                        type="text"
-                        value={form.color_name}
-                        onChange={(e) => setForm({ ...form, color_name: e.target.value })}
-                        className="flex-1 px-4 py-2.5 rounded-lg border border-gray-300 focus:border-gold-500 focus:ring-2 focus:ring-gold-200"
-                        placeholder="اسم اللون"
-                      />
-                    )}
-                    {form.color_code && (
-                      <div
-                        className="w-10 h-10 rounded-lg border border-gray-300 flex-shrink-0"
-                        style={{ backgroundColor: form.color_code }}
-                      />
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    الكمية الحالية <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    step="0.001"
-                    min="0"
-                    value={form.quantity_in_stock}
-                    onChange={(e) => setForm({ ...form, quantity_in_stock: Number(e.target.value) })}
-                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-gold-500 focus:ring-2 focus:ring-gold-200"
-                    required={colorVariants.length === 0}
-                  />
-                </div>
-              </div>
+          <div className="flex items-center gap-3">
+            <select
+              value={form.color_name}
+              onChange={(e) => {
+                const c = productColors.find((p) => p.name === e.target.value);
+                setForm({ ...form, color_name: e.target.value, color_code: c?.hex_code || '' });
+              }}
+              className="flex-1 px-4 py-2.5 rounded-lg border border-gray-300 focus:border-gold-500 focus:ring-2 focus:ring-gold-200"
+            >
+              <option value="">بدون لون</option>
+              {productColors.map((c) => (
+                <option key={c.id} value={c.name}>{c.name}</option>
+              ))}
+            </select>
+            {form.color_code && (
+              <div
+                className="w-10 h-10 rounded-lg border border-gray-300 flex-shrink-0"
+                style={{ backgroundColor: form.color_code }}
+              />
             )}
           </div>
-        )}
+        </div>
 
-        {/* Edit mode: single color/warehouse/stock fields */}
-        {isEdit && (
-          <div className="bg-white rounded-xl shadow-card p-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">اللون والمخزن</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Warehouse + Quantity */}
+        <div className="bg-white rounded-xl shadow-card p-6">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">
+            {isEdit ? 'المخزن والكمية' : 'المخازن والكميات'}
+          </h2>
+
+          {isEdit ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">المخزن</label>
                 <select
@@ -482,36 +504,6 @@ const ProductFormPage: React.FC = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">اللون</label>
-                <div className="flex gap-2">
-                  {productColors.length > 0 ? (
-                    <select
-                      value={form.color_name}
-                      onChange={(e) => {
-                        const c = productColors.find((p) => p.name === e.target.value);
-                        setForm({ ...form, color_name: e.target.value, color_code: c?.hex_code || '' });
-                      }}
-                      className="flex-1 px-4 py-2.5 rounded-lg border border-gray-300 focus:border-gold-500 focus:ring-2 focus:ring-gold-200"
-                    >
-                      <option value="">بدون لون</option>
-                      {productColors.map((c) => (
-                        <option key={c.id} value={c.name}>{c.name}</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input
-                      type="text"
-                      value={form.color_name}
-                      onChange={(e) => setForm({ ...form, color_name: e.target.value })}
-                      className="flex-1 px-4 py-2.5 rounded-lg border border-gray-300 focus:border-gold-500 focus:ring-2 focus:ring-gold-200"
-                    />
-                  )}
-                  {form.color_code && (
-                    <div className="w-10 h-10 rounded-lg border border-gray-300 flex-shrink-0" style={{ backgroundColor: form.color_code }} />
-                  )}
-                </div>
-              </div>
-              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">الكمية الحالية <span className="text-red-500">*</span></label>
                 <input
                   type="number"
@@ -519,13 +511,58 @@ const ProductFormPage: React.FC = () => {
                   min="0"
                   value={form.quantity_in_stock}
                   onChange={(e) => setForm({ ...form, quantity_in_stock: Number(e.target.value) })}
+                  onFocus={handleNumberFocus}
                   className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-gold-500 focus:ring-2 focus:ring-gold-200"
                   required
                 />
               </div>
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-gray-500 mb-3">اختر المخازن التي تريد إضافة المنتج فيها مع تحديد الكمية لكل مخزن</p>
+              {warehouses.map((wh) => {
+                const ws = warehouseStocks.find((s) => s.warehouse_id === wh.id);
+                return (
+                  <div key={wh.id} className="flex items-center gap-4 p-3 rounded-lg border border-gray-200 hover:border-gold-300 transition-colors">
+                    <label className="flex items-center gap-3 cursor-pointer flex-1">
+                      <input
+                        type="checkbox"
+                        checked={ws?.selected || false}
+                        onChange={(e) => {
+                          setWarehouseStocks((prev) =>
+                            prev.map((s) =>
+                              s.warehouse_id === wh.id ? { ...s, selected: e.target.checked } : s
+                            )
+                          );
+                        }}
+                        className="w-5 h-5 rounded border-gray-300 text-gold-500 focus:ring-gold-200"
+                      />
+                      <span className="font-medium text-gray-700">{wh.name}</span>
+                    </label>
+                    {ws?.selected && (
+                      <input
+                        type="number"
+                        step="0.001"
+                        min="0"
+                        value={ws.quantity}
+                        onChange={(e) => {
+                          setWarehouseStocks((prev) =>
+                            prev.map((s) =>
+                              s.warehouse_id === wh.id ? { ...s, quantity: Number(e.target.value) } : s
+                            )
+                          );
+                        }}
+                        onFocus={handleNumberFocus}
+                        placeholder="الكمية"
+                        className="w-32 px-3 py-2 rounded-lg border border-gray-300 focus:border-gold-500 focus:ring-1 focus:ring-gold-200 text-center"
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
         {/* Submit */}
         <div className="flex justify-end gap-4 pb-4">
@@ -546,6 +583,32 @@ const ProductFormPage: React.FC = () => {
           </button>
         </div>
       </form>
+
+      {/* Add Unit Modal */}
+      {showAddUnit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowAddUnit(false)}>
+          <div className="bg-white rounded-xl p-6 w-full max-w-sm mx-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">إضافة وحدة قياس جديدة</h3>
+            <input
+              type="text"
+              value={newUnitName}
+              onChange={(e) => setNewUnitName(e.target.value)}
+              placeholder="اسم الوحدة (مثال: لفة، كرتون...)"
+              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-gold-500 focus:ring-2 focus:ring-gold-200 mb-4"
+              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddUnit())}
+              autoFocus
+            />
+            <div className="flex gap-3 justify-end">
+              <button type="button" onClick={() => setShowAddUnit(false)} className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50">
+                إلغاء
+              </button>
+              <button type="button" onClick={handleAddUnit} className="px-4 py-2 bg-gold-500 hover:bg-gold-600 text-gray-900 font-semibold rounded-lg">
+                إضافة
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

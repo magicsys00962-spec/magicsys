@@ -62,9 +62,11 @@ const Layout: React.FC = () => {
       children: [
         { label: 'كل المنتجات', path: '/inventory', perm: 'inventory' as PermissionKey },
         { label: 'إضافة منتج', path: '/inventory/add', perm: 'inventory_add' as PermissionKey },
+        { label: 'نقل المنتجات', path: '/inventory/transfer', perm: 'inventory' as PermissionKey },
         { label: 'تنبيهات المخزون', path: '/inventory/warnings', perm: 'inventory_warnings' as PermissionKey },
         { label: 'إدارة الأصناف', path: '/inventory/categories', perm: 'inventory_categories' as PermissionKey },
         { label: 'إدارة الألوان', path: '/inventory/colors', perm: 'inventory_categories' as PermissionKey },
+        { label: 'إدارة الوحدات', path: '/inventory/units', perm: 'inventory_categories' as PermissionKey },
       ],
       show: hp('inventory') || hp('inventory_add') || hp('inventory_warnings') || hp('inventory_categories'),
     },
@@ -107,8 +109,9 @@ const Layout: React.FC = () => {
       children: [
         { label: 'تقرير اليوم', path: '/reports/daily', perm: 'reports' as PermissionKey },
         { label: 'تقرير الأسبوع', path: '/reports/weekly', perm: 'reports' as PermissionKey },
+        { label: 'الأرباح', path: '/reports/profits', perm: 'reports_profits' as PermissionKey },
       ],
-      show: hp('reports'),
+      show: hp('reports') || hp('reports_profits'),
     },
     {
       label: 'الإعدادات',

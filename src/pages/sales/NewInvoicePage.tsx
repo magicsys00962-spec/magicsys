@@ -89,6 +89,7 @@ const NewInvoicePage: React.FC = () => {
           category:product_categories(name),
           warehouse:warehouses(name)
         `)
+        .eq('is_archived', false)
         .order('name');
 
       if (user?.warehouse_id) {
@@ -229,6 +230,22 @@ const NewInvoicePage: React.FC = () => {
     setSaving(true);
 
     try {
+      // Validate stock availability before proceeding
+      for (const item of items) {
+        const { data: freshProduct } = await supabase
+          .from('products')
+          .select('quantity_in_stock, warehouse:warehouses(name)')
+          .eq('id', item.product.id)
+          .single();
+
+        if (freshProduct && freshProduct.quantity_in_stock < item.quantity) {
+          const warehouseName = (freshProduct.warehouse as any)?.name || '';
+          throw new Error(
+            `الكمية غير كافية للمنتج "${item.product.name}". المطلوب: ${item.quantity}, المتوفر: ${freshProduct.quantity_in_stock} في ${warehouseName}`
+          );
+        }
+      }
+
       const warehouse = user?.warehouse_id
         ? warehouses.find((w) => w.id === user.warehouse_id)
         : warehouses[0];
@@ -407,8 +424,8 @@ const NewInvoicePage: React.FC = () => {
                           <p className="font-semibold text-gray-800">
                             {product.retail_price.toFixed(3)} د.أ
                           </p>
-                          <p className="text-sm text-gray-500">
-                            المخزون: {product.quantity_in_stock} {getUnitLabel(product.unit)}
+                          <p className={`text-sm font-bold ${product.quantity_in_stock <= 0 ? 'text-red-600' : 'text-green-600'}`}>
+                            متوفر: {product.quantity_in_stock} {getUnitLabel(product.unit)}
                           </p>
                         </div>
                       </div>

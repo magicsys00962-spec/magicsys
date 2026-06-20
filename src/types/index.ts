@@ -5,7 +5,7 @@ export type ProjectStatus = 'INSPECTION_REQUESTED' | 'INSPECTED' | 'CONTRACT_SIG
 export type TransferStatus = 'REQUESTED' | 'CONFIRMED' | 'CANCELLED';
 export type MaterialStatus = 'PENDING' | 'DELIVERED';
 export type InspectionStatus = 'PENDING' | 'ASSIGNED' | 'COMPLETED';
-export type ProductUnit = 'piece' | 'box' | 'meter' | 'kg';
+export type ProductUnit = string;
 
 export type PermissionKey =
   | 'dashboard'
@@ -14,6 +14,8 @@ export type PermissionKey =
   | 'inventory_warnings'
   | 'inventory_categories'
   | 'inventory_colors'
+  | 'inventory_units'
+  | 'inventory_transfer'
   | 'sales'
   | 'sales_create'
   | 'customers'
@@ -22,6 +24,7 @@ export type PermissionKey =
   | 'projects'
   | 'projects_inspections'
   | 'reports'
+  | 'reports_profits'
   | 'admin_users'
   | 'admin_warehouses'
   | 'admin_pricing'
@@ -67,8 +70,13 @@ export interface Product {
   wholesale_price: number | null;
   craftsman_price: number | null;
   minimum_price: number;
+  purchase_price: number;
   wholesale_threshold: number;
   reorder_level: number;
+  dimension_length: number | null;
+  dimension_width: number | null;
+  dimension_thickness: number | null;
+  is_archived: boolean;
   created_at: string;
   updated_at: string;
   category?: ProductCategory;
@@ -211,10 +219,13 @@ export interface StockTransfer {
   status: TransferStatus;
   invoice_id: string | null;
   notes: string | null;
+  product_name: string | null;
   created_at: string;
+  transferred_at: string;
   product?: Product;
   from_warehouse?: Warehouse;
   to_warehouse?: Warehouse;
+  requested_by?: User;
 }
 
 export interface DailyExpense {
@@ -250,6 +261,13 @@ export interface DashboardStats {
   pending_invoices: number;
   overdue_credit: number;
   low_stock_count: number;
+  daily_profit?: number;
   active_projects?: number;
   pending_inspections?: number;
+}
+
+export interface ProductUnitRecord {
+  id: string;
+  name: string;
+  created_at: string;
 }

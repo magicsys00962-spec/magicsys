@@ -22,6 +22,7 @@ const StockWarningsPage: React.FC = () => {
       let query = supabase
         .from('products')
         .select(`*, warehouse:warehouses(id, name, code), category:product_categories(name)`)
+        .eq('is_archived', false)
         .order('quantity_in_stock', { ascending: true });
 
       if (user?.warehouse_id && user.role === 'EMPLOYEE') {

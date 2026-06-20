@@ -9,6 +9,7 @@ import {
   Users,
   Wrench,
   Package,
+  TrendingUp,
 } from 'lucide-react';
 import { useAuthStore, isAdmin, isEmployee, isProjectManager } from '../stores/authStore';
 import { supabase } from '../lib/supabase';
@@ -50,6 +51,19 @@ const DashboardPage: React.FC = () => {
         .order('created_at', { ascending: false });
 
       const totalSales = paidInvoices?.reduce((sum, inv) => sum + Number(inv.net_amount), 0) || 0;
+
+      // Fetch daily profit
+      let dailyProfit = 0;
+      if (isAdmin(user) || user?.permissions?.reports_profits) {
+        const { data: profitData } = await supabase.rpc('get_profits_report', {
+          p_user_id: user.id,
+          p_start_date: today,
+          p_end_date: today,
+        });
+        if (profitData?.success) {
+          dailyProfit = Number(profitData.total_profit) || 0;
+        }
+      }
 
       // Fetch pending invoices count
       const { count: pendingCount } = await supabase
@@ -107,7 +121,8 @@ const DashboardPage: React.FC = () => {
         total_sales_today: totalSales,
         pending_invoices: pendingCount || 0,
         overdue_credit: overdueCount || 0,
-        low_stock_count: 0, // Will calculate properly
+        low_stock_count: 0,
+        daily_profit: dailyProfit,
         active_projects: activeProjects,
         pending_inspections: pendingInspections,
       });
@@ -191,6 +206,15 @@ const DashboardPage: React.FC = () => {
             value={stats.low_stock_count.toString()}
             icon={Package}
             color="bg-orange-500"
+            loading={loading}
+          />
+        )}
+        {(isAdmin(user) || user?.permissions?.reports_profits) && (
+          <StatCard
+            title="أرباح اليوم"
+            value={`${(stats.daily_profit || 0).toFixed(2)} د.أ`}
+            icon={TrendingUp}
+            color="bg-emerald-600"
             loading={loading}
           />
         )}

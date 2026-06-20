@@ -22,6 +22,8 @@ import ProductFormPage from './pages/inventory/ProductFormPage';
 import StockWarningsPage from './pages/inventory/StockWarningsPage';
 import CategoriesPage from './pages/inventory/CategoriesPage';
 import ColorsPage from './pages/inventory/ColorsPage';
+import UnitsPage from './pages/inventory/UnitsPage';
+import StockTransferPage from './pages/inventory/StockTransferPage';
 
 // Sales pages
 import NewInvoicePage from './pages/sales/NewInvoicePage';
@@ -44,6 +46,7 @@ import InspectionRequestsPage from './pages/projects/InspectionRequestsPage';
 import DailyReportPage from './pages/reports/DailyReportPage';
 import WeeklyReportPage from './pages/reports/WeeklyReportPage';
 import DailyClosePage from './pages/reports/DailyClosePage';
+import ProfitsPage from './pages/reports/ProfitsPage';
 
 // Admin pages
 import AdminUsersPage from './pages/admin/AdminUsersPage';
@@ -165,6 +168,8 @@ const App: React.FC = () => {
             <Route path="warnings" element={<ProtectedRoute requiredPermission="inventory_warnings"><StockWarningsPage /></ProtectedRoute>} />
             <Route path="categories" element={<ProtectedRoute requiredPermission="inventory_categories"><CategoriesPage /></ProtectedRoute>} />
             <Route path="colors" element={<ProtectedRoute requiredPermission="inventory_categories"><ColorsPage /></ProtectedRoute>} />
+            <Route path="units" element={<ProtectedRoute requiredPermission="inventory_categories"><UnitsPage /></ProtectedRoute>} />
+            <Route path="transfer" element={<ProtectedRoute requiredPermission="inventory"><StockTransferPage /></ProtectedRoute>} />
           </Route>
 
           {/* Sales */}
@@ -194,6 +199,7 @@ const App: React.FC = () => {
           <Route path="reports">
             <Route path="daily" element={<ProtectedRoute requiredPermission="reports"><DailyReportPage /></ProtectedRoute>} />
             <Route path="weekly" element={<ProtectedRoute requiredPermission="reports"><WeeklyReportPage /></ProtectedRoute>} />
+            <Route path="profits" element={<ProtectedRoute requiredPermission="reports_profits"><ProfitsPage /></ProtectedRoute>} />
           </Route>
 
           {/* Admin */}
