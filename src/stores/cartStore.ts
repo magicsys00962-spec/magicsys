@@ -24,20 +24,14 @@ interface CartState {
 
 const determinePriceType = (
   product: Product,
-  quantity: number,
+  _quantity: number,
   userType?: 'CRAFTSMAN' | 'WALK_IN' | 'COMPANY'
 ): { price: number; type: 'retail' | 'wholesale' | 'craftsman' } => {
-  // Craftsman always gets craftsman price
+  // Craftsman gets craftsman price only if explicitly a craftsman customer
   if (userType === 'CRAFTSMAN' && product.craftsman_price) {
     return { price: product.craftsman_price, type: 'craftsman' };
   }
-
-  // Check if quantity qualifies for wholesale price
-  if (product.wholesale_price && quantity >= product.wholesale_threshold) {
-    return { price: product.wholesale_price, type: 'wholesale' };
-  }
-
-  // Default to retail price
+  // Default to retail for everyone else
   return { price: product.retail_price, type: 'retail' };
 };
 

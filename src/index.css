@@ -125,17 +125,32 @@ input:focus, select:focus, textarea:focus {
     visibility: hidden;
   }
 
+  .print-invoice, .print-invoice * {
+    visibility: visible;
+  }
+
   .print-area, .print-area * {
     visibility: visible;
   }
 
-  .print-area {
-    position: absolute;
-    left: 0;
-    top: 0;
+  .print-invoice {
+    position: fixed;
+    inset: 0;
     width: 100%;
     direction: rtl;
-    padding: 20mm;
+    background: white;
+    font-family: 'Cairo', sans-serif;
+    z-index: 9999;
+  }
+
+  .print-area {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    direction: rtl;
+    padding: 10mm;
+    background: white;
+    z-index: 9999;
   }
 
   .no-print {
@@ -151,30 +166,8 @@ input:focus, select:focus, textarea:focus {
     padding: 0 !important;
   }
 
-  .print-invoice {
-    width: 210mm;
-    min-height: 297mm;
-    padding: 20mm;
-    margin: 0 auto;
-    background: white;
-    font-family: 'Cairo', sans-serif;
-  }
-
-  .craftsman-card-print {
-    width: 85mm;
-    height: 54mm;
-    border: 1px solid #ccc;
-    padding: 5mm;
-    margin: 5mm auto;
-    page-break-inside: avoid;
-  }
-
   .shadow-card, .shadow-lg {
     box-shadow: none !important;
-  }
-
-  .rounded-xl {
-    border: 1px solid #e5e7eb;
   }
 
   .hidden.print\\:block {

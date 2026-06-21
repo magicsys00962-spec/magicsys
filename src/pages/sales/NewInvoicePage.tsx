@@ -479,19 +479,36 @@ const NewInvoicePage: React.FC = () => {
                         <p className="text-sm text-gray-500">
                           {item.product.sku_code} • {item.product.color_name}
                         </p>
-                        <div className="mt-2 flex items-center gap-2">
-                          <span
-                            className={clsx(
-                              'text-xs px-2 py-1 rounded-full',
-                              item.price_type === 'wholesale' && 'bg-blue-100 text-blue-700',
-                              item.price_type === 'craftsman' && 'bg-purple-100 text-purple-700',
-                              item.price_type === 'retail' && 'bg-gray-100 text-gray-700'
-                            )}
-                          >
-                            {item.price_type === 'wholesale' && 'سعر الجملة'}
-                            {item.price_type === 'craftsman' && 'سعر الصنايعي'}
-                            {item.price_type === 'retail' && 'سعر المفرق'}
-                          </span>
+                        {/* Price type selector */}
+                        <div className="mt-2 flex items-center gap-2 flex-wrap">
+                          {[
+                            { type: 'retail' as const, label: 'مفرق', price: item.product.retail_price },
+                            ...(item.product.wholesale_price ? [{ type: 'wholesale' as const, label: 'جملة', price: item.product.wholesale_price }] : []),
+                            ...(item.product.craftsman_price ? [{ type: 'craftsman' as const, label: 'صنايعي', price: item.product.craftsman_price }] : []),
+                          ].map((opt) => (
+                            <button
+                              key={opt.type}
+                              type="button"
+                              onClick={() => {
+                                const finalPrice = Math.max(opt.price, item.product.minimum_price);
+                                useCartStore.setState((state) => ({
+                                  items: state.items.map((i) =>
+                                    i.product.id === item.product.id
+                                      ? { ...i, applied_price: finalPrice, price_type: opt.type, discount: 0 }
+                                      : i
+                                  ),
+                                }));
+                              }}
+                              className={clsx(
+                                'text-xs px-2.5 py-1 rounded-full border transition-colors',
+                                item.price_type === opt.type
+                                  ? 'bg-gold-500 border-gold-600 text-gray-900 font-semibold'
+                                  : 'bg-gray-100 border-gray-200 text-gray-600 hover:bg-gray-200'
+                              )}
+                            >
+                              {opt.label}: {Number(opt.price).toFixed(3)}
+                            </button>
+                          ))}
                         </div>
                       </div>
                       <button

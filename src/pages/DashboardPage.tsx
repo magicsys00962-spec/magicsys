@@ -243,9 +243,23 @@ const DashboardPage: React.FC = () => {
       {/* Quick links */}
       <div className="bg-white rounded-xl shadow-card p-6">
         <h2 className="text-lg font-semibold text-gray-800 mb-4">روابط سريعة</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          {!isProjectManager(user) && (
+            <Link
+              to="/sales/new"
+              className="flex items-center gap-3 p-5 rounded-xl bg-green-500 hover:bg-green-600 transition-all shadow-md hover:shadow-lg text-white"
+            >
+              <div className="p-2 bg-white/20 rounded-lg">
+                <ShoppingCart size={24} />
+              </div>
+              <div>
+                <p className="font-bold text-base">فاتورة جديدة</p>
+                <p className="text-xs text-green-100">إنشاء فاتورة بيع</p>
+              </div>
+            </Link>
+          )}
           {quickLinks
-            .filter((link) => link.show)
+            .filter((link) => link.show && link.path !== '/sales/new')
             .map((link) => (
               <Link
                 key={link.path}

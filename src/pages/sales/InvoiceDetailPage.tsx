@@ -236,7 +236,6 @@ const InvoiceDetailPage: React.FC = () => {
                 <th className="px-3 py-3 text-right font-semibold text-gray-700">الكمية</th>
                 <th className="px-3 py-3 text-right font-semibold text-gray-700">سعر الحبة</th>
                 <th className="px-3 py-3 text-right font-semibold text-gray-700">الخصم</th>
-                <th className="px-3 py-3 text-right font-semibold text-gray-700">سبب الخصم</th>
                 <th className="px-3 py-3 text-right font-semibold text-gray-700">الإجمالي</th>
               </tr>
             </thead>
@@ -249,7 +248,6 @@ const InvoiceDetailPage: React.FC = () => {
                   <td className="px-3 py-3">{item.quantity}</td>
                   <td className="px-3 py-3">{Number(item.unit_price).toFixed(3)} د.أ</td>
                   <td className="px-3 py-3 text-red-500">{Number(item.discount_amount) > 0 ? `- ${Number(item.discount_amount).toFixed(3)}` : '-'}</td>
-                  <td className="px-3 py-3 text-gray-500 text-xs">{item.discount_note || '-'}</td>
                   <td className="px-3 py-3 font-semibold">{Number(item.subtotal).toFixed(3)} د.أ</td>
                 </tr>
               ))}
