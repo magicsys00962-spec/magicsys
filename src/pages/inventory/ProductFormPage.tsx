@@ -47,11 +47,11 @@ const ProductFormPage: React.FC = () => {
     color_name: '',
     quantity_in_stock: 0,
     unit: 'piece',
-    retail_price: 0,
-    wholesale_price: 0,
-    craftsman_price: 0,
-    minimum_price: 0,
-    purchase_price: 0,
+    retail_price: '' as string | number,
+    wholesale_price: '' as string | number,
+    craftsman_price: '' as string | number,
+    minimum_price: '' as string | number,
+    purchase_price: '' as string | number,
     reorder_level: 0,
     dimension_length: '',
     dimension_width: '',
@@ -178,7 +178,13 @@ const ProductFormPage: React.FC = () => {
     setSaving(true);
 
     try {
-      if (!form.purchase_price || form.purchase_price <= 0) {
+      const purchasePrice = Number(form.purchase_price);
+      const retailPrice = Number(form.retail_price);
+      const wholesalePrice = Number(form.wholesale_price);
+      const craftsmanPrice = Number(form.craftsman_price);
+      const minimumPrice = Number(form.minimum_price);
+
+      if (!purchasePrice || purchasePrice <= 0) {
         throw new Error('الرجاء إدخال سعر الشراء');
       }
 
@@ -192,11 +198,11 @@ const ProductFormPage: React.FC = () => {
           color_name: form.color_name || null,
           quantity_in_stock: form.quantity_in_stock,
           unit: form.unit,
-          retail_price: form.retail_price,
-          wholesale_price: form.wholesale_price || null,
-          craftsman_price: form.craftsman_price || null,
-          minimum_price: form.minimum_price,
-          purchase_price: form.purchase_price,
+          retail_price: retailPrice,
+          wholesale_price: wholesalePrice || null,
+          craftsman_price: craftsmanPrice || null,
+          minimum_price: minimumPrice,
+          purchase_price: purchasePrice,
           reorder_level: form.reorder_level,
           dimension_length: form.dimension_length ? Number(form.dimension_length) : null,
           dimension_width: form.dimension_width ? Number(form.dimension_width) : null,
@@ -222,11 +228,11 @@ const ProductFormPage: React.FC = () => {
             color_name: form.color_name || null,
             quantity_in_stock: ws.quantity,
             unit: form.unit,
-            retail_price: form.retail_price,
-            wholesale_price: form.wholesale_price || null,
-            craftsman_price: form.craftsman_price || null,
-            minimum_price: form.minimum_price,
-            purchase_price: form.purchase_price,
+            retail_price: retailPrice,
+            wholesale_price: wholesalePrice || null,
+            craftsman_price: craftsmanPrice || null,
+            minimum_price: minimumPrice,
+            purchase_price: purchasePrice,
             reorder_level: form.reorder_level,
             dimension_length: form.dimension_length ? Number(form.dimension_length) : null,
             dimension_width: form.dimension_width ? Number(form.dimension_width) : null,
@@ -362,10 +368,10 @@ const ProductFormPage: React.FC = () => {
                 </label>
                 <input
                   type="number"
-                  step="0.001"
+                  step="any"
                   min="0"
-                  value={form[key as keyof typeof form] as number}
-                  onChange={(e) => setForm({ ...form, [key]: Number(e.target.value) })}
+                  value={form[key as keyof typeof form] as string | number}
+                  onChange={(e) => setForm({ ...form, [key]: e.target.value })}
                   onFocus={handleNumberFocus}
                   className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-gold-500 focus:ring-2 focus:ring-gold-200"
                   required={required}
