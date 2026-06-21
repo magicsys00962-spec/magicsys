@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-// import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   Search,
   Plus,
@@ -24,6 +24,7 @@ import clsx from 'clsx';
 import toast from 'react-hot-toast';
 
 const NewInvoicePage: React.FC = () => {
+  const navigate = useNavigate();
   const { user } = useAuthStore();
   const {
     items,
@@ -118,7 +119,21 @@ const NewInvoicePage: React.FC = () => {
       (c.phone && c.phone.includes(customerSearch))
   );
 
-  const handleAddProduct = (product: Product) => {
+  const handleAddProduct = async (product: Product) => {
+    // Check stock availability
+    if (product.quantity_in_stock <= 0) {
+      // Search other warehouses
+      const { data } = await supabase.rpc('search_product_across_warehouses', { p_search: product.sku_code });
+      const otherResults = (data?.results || []).filter((r: any) => r.warehouse_id !== user?.warehouse_id && r.quantity_in_stock > 0);
+      if (otherResults.length > 0) {
+        const info = otherResults.map((r: any) => `${r.warehouse_name}: ${r.quantity_in_stock}`).join(' | ');
+        toast.error(`المنتج غير متوفر في مخزنك. متوفر في: ${info}`);
+      } else {
+        toast.error('المنتج غير متوفر في أي مخزن');
+      }
+      return;
+    }
+
     const userType = customer?.type;
     // Apply craftsman custom price if available
     const overridePrice = craftsmanPrices[product.id];
@@ -330,10 +345,6 @@ const NewInvoicePage: React.FC = () => {
     }
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
-
   const handleNewInvoice = () => {
     clearCart();
     setSavedInvoiceId(null);
@@ -356,13 +367,13 @@ const NewInvoicePage: React.FC = () => {
           <p className="text-gray-500 mb-6">
             الفاتورة رقم: {savedInvoiceId}
           </p>
-          <div className="flex justify-center gap-4">
+          <div className="flex justify-center gap-4 flex-wrap">
             <button
-              onClick={handlePrint}
-              className="flex items-center gap-2 px-6 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors no-print"
+              onClick={() => navigate(`/sales/invoices/${savedInvoiceId}`)}
+              className="flex items-center gap-2 px-6 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition-colors"
             >
               <Printer size={20} />
-              طباعة
+              عرض وطباعة الفاتورة
             </button>
             <button
               onClick={handleNewInvoice}
@@ -379,6 +390,13 @@ const NewInvoicePage: React.FC = () => {
 
   return (
     <div className="animate-fade-in">
+      {/* Current warehouse indicator */}
+      {user?.warehouse_id && (
+        <div className="mb-4 bg-blue-50 border border-blue-200 px-4 py-2.5 rounded-lg flex items-center gap-2 text-sm">
+          <span className="text-blue-600 font-medium">المخزن الحالي:</span>
+          <span className="font-bold text-blue-800">{warehouses.find((w) => w.id === user.warehouse_id)?.name || '-'}</span>
+        </div>
+      )}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Product search and cart */}
         <div className="lg:col-span-2 space-y-6">

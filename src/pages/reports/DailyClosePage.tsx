@@ -1,20 +1,31 @@
 import React, { useEffect, useState } from 'react';
-import { Printer, CheckCircle, Clock, DollarSign, CreditCard, FileText } from 'lucide-react';
+import { Printer, CheckCircle, Clock, DollarSign, CreditCard, FileText, RotateCcw } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../stores/authStore';
 import type { Invoice, DailyExpense } from '../../types';
-import Logo from '../../components/Logo';
 import toast from 'react-hot-toast';
+
+interface DailyReturn {
+  id: string;
+  invoice_id: string;
+  total_return_amount: number;
+  notes: string | null;
+  created_at: string;
+  invoice?: { invoice_number: string };
+  employee?: { name: string };
+}
 
 interface DailyReport {
   paidInvoices: Invoice[];
   pendingInvoices: Invoice[];
   creditInvoices: Invoice[];
   expenses: DailyExpense[];
+  returns: DailyReturn[];
   totalPaid: number;
   totalPending: number;
   totalCredit: number;
   totalExpenses: number;
+  totalReturns: number;
   netCash: number;
 }
 
@@ -57,7 +68,7 @@ const DailyClosePage: React.FC = () => {
       const dateTo = new Date(todayISO);
       dateTo.setHours(23, 59, 59, 999);
 
-      const [{ data: invoices }, expensesResult] = await Promise.all([
+      const [{ data: invoices }, expensesResult, { data: returns }] = await Promise.all([
         supabase
           .from('invoices')
           .select('*, customer:customers(name)')
@@ -70,6 +81,12 @@ const DailyClosePage: React.FC = () => {
           p_date_from: todayISO,
           p_date_to: todayISO,
         }),
+        supabase
+          .from('invoice_returns')
+          .select('*, invoice:invoices(invoice_number), employee:users(name)')
+          .eq('warehouse_id', user.warehouse_id)
+          .gte('created_at', dateFrom.toISOString())
+          .lte('created_at', dateTo.toISOString()),
       ]);
 
       const expenses = expensesResult.data?.success ? expensesResult.data.expenses : [];
@@ -82,17 +99,20 @@ const DailyClosePage: React.FC = () => {
       const totalPending = pendingInvoices.reduce((sum, i) => sum + Number(i.net_amount), 0);
       const totalCredit = creditInvoices.reduce((sum, i) => sum + Number(i.net_amount), 0);
       const totalExpenses = expenses?.reduce((sum, e) => sum + Number(e.amount), 0) || 0;
+      const totalReturns = (returns || []).reduce((sum, r) => sum + Number(r.total_return_amount), 0);
 
       setReport({
         paidInvoices,
         pendingInvoices,
         creditInvoices,
         expenses: expenses || [],
+        returns: returns || [],
         totalPaid,
         totalPending,
         totalCredit,
         totalExpenses,
-        netCash: totalPaid - totalExpenses,
+        totalReturns,
+        netCash: totalPaid - totalExpenses - totalReturns,
       });
     } catch (error) {
       console.error('Error generating report:', error);
@@ -166,7 +186,7 @@ const DailyClosePage: React.FC = () => {
           </div>
 
           {/* Summary Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-6">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 lg:gap-4 mb-6">
             <div className="bg-white rounded-xl shadow-card p-4 lg:p-5 border-r-4 border-green-500">
               <div className="flex items-center gap-2 lg:gap-3 mb-2">
                 <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-lg bg-green-100 flex items-center justify-center">
@@ -210,14 +230,25 @@ const DailyClosePage: React.FC = () => {
               <p className="text-lg lg:text-2xl font-bold text-gray-800">{report.totalExpenses.toFixed(3)}</p>
               <p className="text-xs text-gray-400 mt-1">{report.expenses.length} مصروف</p>
             </div>
+
+            <div className="bg-white rounded-xl shadow-card p-4 lg:p-5 border-r-4 border-rose-500">
+              <div className="flex items-center gap-2 lg:gap-3 mb-2">
+                <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-lg bg-rose-100 flex items-center justify-center">
+                  <RotateCcw size={18} className="text-rose-600 lg:w-5 lg:h-5" />
+                </div>
+                <span className="text-xs lg:text-sm text-gray-500">المرتجعات</span>
+              </div>
+              <p className="text-lg lg:text-2xl font-bold text-gray-800">{report.totalReturns.toFixed(3)}</p>
+              <p className="text-xs text-gray-400 mt-1">{report.returns.length} عملية إرجاع</p>
+            </div>
           </div>
 
-          {/* Net Cash - prominent */}
+          {/* Net Cash */}
           <div className="bg-gradient-to-l from-gold-500 to-gold-600 rounded-xl p-4 lg:p-6 mb-6 shadow-lg">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <div>
-                <p className="text-gray-800 font-medium text-sm lg:text-base">صافي الكاش (بعد المصروفات)</p>
-                <p className="text-xs text-gray-700 mt-1">= المبيعات الكاش - المصروفات</p>
+                <p className="text-gray-800 font-medium text-sm lg:text-base">صافي الكاش</p>
+                <p className="text-xs text-gray-700 mt-1">= المبيعات الكاش - المصروفات - المرتجعات</p>
               </div>
               <div className="text-right sm:text-left">
                 <p className="text-2xl lg:text-3xl font-bold text-gray-900">{report.netCash.toFixed(3)}</p>
@@ -371,6 +402,45 @@ const DailyClosePage: React.FC = () => {
                     <tr>
                       <td colSpan={2} className="px-4 py-3 font-bold">المجموع</td>
                       <td className="px-4 py-3 font-bold text-red-700">{report.totalExpenses.toFixed(3)} د.أ</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Returns */}
+          {report.returns.length > 0 && (
+            <div className="bg-white rounded-xl shadow-card overflow-hidden mb-4">
+              <div className="px-6 py-4 border-b border-gray-200 bg-rose-50">
+                <h3 className="font-semibold text-gray-800">
+                  المرتجعات ({report.returns.length})
+                </h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-right font-medium text-gray-600">رقم الفاتورة</th>
+                      <th className="px-4 py-3 text-right font-medium text-gray-600">الموظف</th>
+                      <th className="px-4 py-3 text-right font-medium text-gray-600">ملاحظات</th>
+                      <th className="px-4 py-3 text-right font-medium text-gray-600">المبلغ المرجع</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {report.returns.map((ret: DailyReturn) => (
+                      <tr key={ret.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 font-mono text-sm">{ret.invoice?.invoice_number || '-'}</td>
+                        <td className="px-4 py-3">{ret.employee?.name || '-'}</td>
+                        <td className="px-4 py-3 text-gray-500 text-xs">{ret.notes || '-'}</td>
+                        <td className="px-4 py-3 font-semibold text-rose-700">{Number(ret.total_return_amount).toFixed(3)} د.أ</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot className="bg-rose-50">
+                    <tr>
+                      <td colSpan={3} className="px-4 py-3 font-bold">المجموع</td>
+                      <td className="px-4 py-3 font-bold text-rose-700">{report.totalReturns.toFixed(3)} د.أ</td>
                     </tr>
                   </tfoot>
                 </table>

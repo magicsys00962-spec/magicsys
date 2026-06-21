@@ -7,6 +7,8 @@ export type MaterialStatus = 'PENDING' | 'DELIVERED';
 export type InspectionStatus = 'PENDING' | 'ASSIGNED' | 'COMPLETED';
 export type ProductUnit = string;
 
+export type StockRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'COMPLETED';
+
 export type PermissionKey =
   | 'dashboard'
   | 'inventory'
@@ -18,6 +20,9 @@ export type PermissionKey =
   | 'inventory_transfer'
   | 'sales'
   | 'sales_create'
+  | 'returns'
+  | 'stock_requests'
+  | 'stock_lookup'
   | 'customers'
   | 'customers_craftsmen'
   | 'customers_add'
@@ -270,4 +275,48 @@ export interface ProductUnitRecord {
   id: string;
   name: string;
   created_at: string;
+}
+
+export interface InvoiceReturn {
+  id: string;
+  invoice_id: string;
+  employee_id: string;
+  warehouse_id: string;
+  return_date: string;
+  total_return_amount: number;
+  notes: string | null;
+  created_at: string;
+  invoice?: Invoice;
+  employee?: User;
+}
+
+export interface InvoiceReturnItem {
+  id: string;
+  return_id: string;
+  invoice_item_id: string | null;
+  product_id: string | null;
+  product_name: string;
+  quantity_returned: number;
+  unit_price: number;
+  return_amount: number;
+}
+
+export interface StockRequest {
+  id: string;
+  product_id: string;
+  product_name: string;
+  from_warehouse_id: string;
+  to_warehouse_id: string;
+  requested_by_id: string;
+  quantity: number;
+  status: StockRequestStatus;
+  approved_by_id: string | null;
+  notes: string | null;
+  response_notes: string | null;
+  created_at: string;
+  responded_at: string | null;
+  from_warehouse?: Warehouse;
+  to_warehouse?: Warehouse;
+  requested_by?: User;
+  approved_by?: User;
 }

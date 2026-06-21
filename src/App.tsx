@@ -24,6 +24,9 @@ import CategoriesPage from './pages/inventory/CategoriesPage';
 import ColorsPage from './pages/inventory/ColorsPage';
 import UnitsPage from './pages/inventory/UnitsPage';
 import StockTransferPage from './pages/inventory/StockTransferPage';
+import WarehouseInventoryPage from './pages/inventory/WarehouseInventoryPage';
+import StockLookupPage from './pages/inventory/StockLookupPage';
+import StockRequestsPage from './pages/inventory/StockRequestsPage';
 
 // Sales pages
 import NewInvoicePage from './pages/sales/NewInvoicePage';
@@ -170,7 +173,21 @@ const App: React.FC = () => {
             <Route path="colors" element={<ProtectedRoute requiredPermission="inventory_categories"><ColorsPage /></ProtectedRoute>} />
             <Route path="units" element={<ProtectedRoute requiredPermission="inventory_categories"><UnitsPage /></ProtectedRoute>} />
             <Route path="transfer" element={<ProtectedRoute requiredPermission="inventory"><StockTransferPage /></ProtectedRoute>} />
+            <Route path="warehouses" element={<ProtectedRoute requiredPermission="inventory"><WarehouseInventoryPage /></ProtectedRoute>} />
           </Route>
+
+          {/* Product Management (separate from inventory) */}
+          <Route path="product-mgmt">
+            <Route path="categories" element={<ProtectedRoute requiredPermission="inventory_categories"><CategoriesPage /></ProtectedRoute>} />
+            <Route path="colors" element={<ProtectedRoute requiredPermission="inventory_categories"><ColorsPage /></ProtectedRoute>} />
+            <Route path="units" element={<ProtectedRoute requiredPermission="inventory_categories"><UnitsPage /></ProtectedRoute>} />
+          </Route>
+
+          {/* Stock Requests */}
+          <Route path="stock-requests" element={<ProtectedRoute requiredPermission="inventory"><StockRequestsPage /></ProtectedRoute>} />
+
+          {/* Stock Lookup */}
+          <Route path="stock-lookup" element={<ProtectedRoute requiredPermission="inventory"><StockLookupPage /></ProtectedRoute>} />
 
           {/* Sales */}
           <Route path="sales">

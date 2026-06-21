@@ -16,6 +16,10 @@ import {
   FileCheck,
   ChevronDown,
   ChevronLeft,
+  Layers,
+  Warehouse,
+  Search,
+  ArrowLeftRight,
 } from 'lucide-react';
 import { useAuthStore, hasPermission } from '../../stores/authStore';
 import type { PermissionKey } from '../../types';
@@ -64,11 +68,20 @@ const Layout: React.FC = () => {
         { label: 'إضافة منتج', path: '/inventory/add', perm: 'inventory_add' as PermissionKey },
         { label: 'نقل المنتجات', path: '/inventory/transfer', perm: 'inventory' as PermissionKey },
         { label: 'تنبيهات المخزون', path: '/inventory/warnings', perm: 'inventory_warnings' as PermissionKey },
-        { label: 'إدارة الأصناف', path: '/inventory/categories', perm: 'inventory_categories' as PermissionKey },
-        { label: 'إدارة الألوان', path: '/inventory/colors', perm: 'inventory_categories' as PermissionKey },
-        { label: 'إدارة الوحدات', path: '/inventory/units', perm: 'inventory_categories' as PermissionKey },
+        { label: 'تنظيم المخازن', path: '/inventory/warehouses', perm: 'inventory' as PermissionKey },
       ],
-      show: hp('inventory') || hp('inventory_add') || hp('inventory_warnings') || hp('inventory_categories'),
+      show: hp('inventory') || hp('inventory_add') || hp('inventory_warnings'),
+    },
+    {
+      label: 'إدارة المنتجات',
+      icon: Layers,
+      key: 'product_mgmt',
+      children: [
+        { label: 'إدارة الأصناف', path: '/product-mgmt/categories', perm: 'inventory_categories' as PermissionKey },
+        { label: 'إدارة الألوان', path: '/product-mgmt/colors', perm: 'inventory_categories' as PermissionKey },
+        { label: 'إدارة الوحدات', path: '/product-mgmt/units', perm: 'inventory_categories' as PermissionKey },
+      ],
+      show: hp('inventory_categories'),
     },
     {
       label: 'المبيعات',
@@ -79,6 +92,20 @@ const Layout: React.FC = () => {
         { label: 'كل الفواتير', path: '/sales/invoices', perm: 'sales' as PermissionKey },
       ],
       show: hp('sales') || hp('sales_create'),
+    },
+    {
+      label: 'طلبات المواد',
+      icon: ArrowLeftRight,
+      key: 'stock_requests',
+      path: '/stock-requests',
+      show: hp('stock_requests') || hp('inventory'),
+    },
+    {
+      label: 'البحث عن مادة',
+      icon: Search,
+      key: 'stock_lookup',
+      path: '/stock-lookup',
+      show: hp('stock_lookup') || hp('inventory'),
     },
     {
       label: 'الزباين',
@@ -280,6 +307,12 @@ const Layout: React.FC = () => {
 
         {/* User info */}
         <div className="absolute bottom-0 left-0 right-0 p-3 border-t border-sidebar-hover bg-sidebar-bg">
+          {(!sidebarCollapsed || sidebarOpen) && user?.warehouse && (
+            <div className="mb-2 px-2 py-1.5 rounded-lg bg-sidebar-hover/50 flex items-center gap-2">
+              <Warehouse size={14} className="text-gold-400 flex-shrink-0" />
+              <span className="text-xs text-gold-300 truncate">{user.warehouse.name}</span>
+            </div>
+          )}
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-sidebar-hover flex items-center justify-center flex-shrink-0">
               <User size={20} />
