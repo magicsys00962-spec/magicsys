@@ -102,7 +102,7 @@ const CustomerAddPage: React.FC = () => {
             {[
               { value: 'WALK_IN', label: 'زبون عابر', icon: User },
               { value: 'CRAFTSMAN', label: 'صنايعي', icon: CreditCard },
-              { value: 'COMPANY', label: 'شركة', icon: User },
+              { value: 'COMPANY', label: 'جملة', icon: User },
             ].map((option) => (
               <button
                 key={option.value}

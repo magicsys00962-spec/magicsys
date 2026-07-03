@@ -58,9 +58,10 @@ const StockTransferPage: React.FC = () => {
         .from('stock_transfers')
         .select(`
           *,
-          from_warehouse:warehouses!stock_transfers_from_warehouse_id_fkey(*),
-          to_warehouse:warehouses!stock_transfers_to_warehouse_id_fkey(*),
-          requested_by:users!stock_transfers_requested_by_id_fkey(name)
+          product:products(name, sku_code),
+          from_warehouse:from_warehouse_id(id, name),
+          to_warehouse:to_warehouse_id(id, name),
+          requested_by:requested_by_id(name)
         `)
         .order('created_at', { ascending: false })
         .limit(50);
@@ -293,7 +294,7 @@ const StockTransferPage: React.FC = () => {
                         <ArrowLeftRight size={18} className="text-blue-600" />
                       </div>
                       <div>
-                        <p className="font-semibold text-gray-800">{t.product_name || 'منتج محذوف'}</p>
+                        <p className="font-semibold text-gray-800">{t.product_name || (t.product as any)?.name || 'منتج محذوف'}</p>
                         <p className="text-sm text-gray-500">
                           {t.from_warehouse?.name || '—'} → {t.to_warehouse?.name || '—'}
                         </p>

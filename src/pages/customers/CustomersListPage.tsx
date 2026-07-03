@@ -53,7 +53,7 @@ const CustomersListPage: React.FC = () => {
       case 'CRAFTSMAN':
         return 'صنايعي';
       case 'COMPANY':
-        return 'شركة';
+        return 'جملة';
       default:
         return type;
     }
@@ -108,7 +108,7 @@ const CustomersListPage: React.FC = () => {
             <option value="">كل الأنواع</option>
             <option value="WALK_IN">زبون عابر</option>
             <option value="CRAFTSMAN">صنايعي</option>
-            <option value="COMPANY">شركة</option>
+            <option value="COMPANY">جملة</option>
           </select>
         </div>
       </div>

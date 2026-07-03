@@ -1,21 +1,16 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   Search,
   Package,
-  Edit,
-  Eye,
   Filter,
   ChevronDown,
   AlertTriangle,
-  Trash2,
-  Archive,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { useAuthStore, canManageProducts, isEmployee } from '../../stores/authStore';
+import { useAuthStore, isEmployee } from '../../stores/authStore';
 import type { Product, ProductCategory, Warehouse } from '../../types';
 import clsx from 'clsx';
-import toast from 'react-hot-toast';
 
 const InventoryPage: React.FC = () => {
   const navigate = useNavigate();
@@ -28,9 +23,6 @@ const InventoryPage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedWarehouse, setSelectedWarehouse] = useState<string>('');
   const [showFilters, setShowFilters] = useState(false);
-  const [deleteModal, setDeleteModal] = useState<{ product: Product; mode: 'delete' | 'archive' } | null>(null);
-
-  const canEdit = canManageProducts(user);
 
   useEffect(() => {
     fetchWarehouses();
@@ -88,23 +80,6 @@ const InventoryPage: React.FC = () => {
       setLoading(false);
     }
   }, [search, selectedCategory, selectedWarehouse, user]);
-
-  const handleDeleteOrArchive = async (product: Product, mode: 'delete' | 'archive') => {
-    try {
-      const { data, error } = await supabase.rpc('delete_or_archive_product', {
-        p_user_id: user?.id,
-        p_product_id: product.id,
-        p_mode: mode,
-      });
-      if (error) throw error;
-      if (!data?.success) throw new Error(data?.message);
-      toast.success(data.message);
-      setProducts(products.filter((p) => p.id !== product.id));
-      setDeleteModal(null);
-    } catch (error: any) {
-      toast.error(error.message || 'حدث خطأ');
-    }
-  };
 
   const getUnitLabel = (unit: string) => {
     const units: Record<string, string> = {
@@ -253,22 +228,6 @@ const InventoryPage: React.FC = () => {
                       <p className="text-xs text-gray-500">د.أ</p>
                     </div>
                   </div>
-                  {canEdit && (
-                    <div className="flex gap-2 mt-3" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        onClick={() => navigate(`/inventory/${product.id}/edit`)}
-                        className="flex-1 py-2 text-sm text-gold-600 bg-gold-50 rounded-lg hover:bg-gold-100 transition-colors"
-                      >
-                        تعديل
-                      </button>
-                      <button
-                        onClick={() => setDeleteModal({ product, mode: 'archive' })}
-                        className="py-2 px-3 text-sm text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  )}
                 </div>
               ))}
             </div>
@@ -282,15 +241,13 @@ const InventoryPage: React.FC = () => {
                     <th className="px-6 py-4 text-right text-sm font-semibold text-gray-700">الرمز</th>
                     <th className="px-6 py-4 text-right text-sm font-semibold text-gray-700">اللون</th>
                     <th className="px-6 py-4 text-right text-sm font-semibold text-gray-700">الكمية المتوفرة</th>
-                    <th className="px-6 py-4 text-right text-sm font-semibold text-gray-700">سعر الشراء</th>
                     <th className="px-6 py-4 text-right text-sm font-semibold text-gray-700">سعر المفرق</th>
                     <th className="px-6 py-4 text-right text-sm font-semibold text-gray-700">المخزن</th>
-                    <th className="px-6 py-4 text-right text-sm font-semibold text-gray-700">إجراءات</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {products.map((product) => (
-                    <tr key={product.id} className="hover:bg-gray-50">
+                    <tr key={product.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => navigate(`/inventory/${product.id}`)}>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           {isLowStock(product) && <AlertTriangle size={18} className="text-red-500" />}
@@ -317,26 +274,8 @@ const InventoryPage: React.FC = () => {
                           {product.quantity_in_stock} {getUnitLabel(product.unit)}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-gray-800">{Number(product.purchase_price || 0).toFixed(2)} د.أ</td>
                       <td className="px-6 py-4 text-gray-800">{Number(product.retail_price).toFixed(2)} د.أ</td>
                       <td className="px-6 py-4 text-gray-600">{product.warehouse?.name || '-'}</td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-1">
-                          <button onClick={() => navigate(`/inventory/${product.id}`)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-600" title="عرض">
-                            <Eye size={18} />
-                          </button>
-                          {canEdit && (
-                            <>
-                              <button onClick={() => navigate(`/inventory/${product.id}/edit`)} className="p-2 rounded-lg hover:bg-gray-100 text-gold-600" title="تعديل">
-                                <Edit size={18} />
-                              </button>
-                              <button onClick={() => setDeleteModal({ product, mode: 'archive' })} className="p-2 rounded-lg hover:bg-red-50 text-red-500" title="حذف/أرشفة">
-                                <Trash2 size={18} />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -345,49 +284,6 @@ const InventoryPage: React.FC = () => {
           </>
         )}
       </div>
-
-      {/* Delete/Archive Modal */}
-      {deleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setDeleteModal(null)}>
-          <div className="bg-white rounded-xl p-6 w-full max-w-sm mx-4" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-bold text-gray-800 mb-2">حذف المنتج</h3>
-            <p className="text-gray-600 mb-1">
-              <span className="font-semibold">{deleteModal.product.name}</span>
-            </p>
-            <p className="text-sm text-gray-500 mb-6">اختر طريقة الحذف:</p>
-
-            <div className="space-y-3">
-              <button
-                onClick={() => handleDeleteOrArchive(deleteModal.product, 'archive')}
-                className="w-full flex items-center gap-3 p-4 rounded-lg border-2 border-amber-200 bg-amber-50 hover:border-amber-400 transition-colors text-right"
-              >
-                <Archive size={20} className="text-amber-600 flex-shrink-0" />
-                <div>
-                  <p className="font-semibold text-gray-800">إضافة للأرشيف</p>
-                  <p className="text-xs text-gray-500">يتم إخفاء المنتج مع الاحتفاظ بالبيانات</p>
-                </div>
-              </button>
-              <button
-                onClick={() => handleDeleteOrArchive(deleteModal.product, 'delete')}
-                className="w-full flex items-center gap-3 p-4 rounded-lg border-2 border-red-200 bg-red-50 hover:border-red-400 transition-colors text-right"
-              >
-                <Trash2 size={20} className="text-red-600 flex-shrink-0" />
-                <div>
-                  <p className="font-semibold text-gray-800">حذف نهائي</p>
-                  <p className="text-xs text-gray-500">يتم حذف المنتج نهائياً (الفواتير المرتبطة لن تتأثر)</p>
-                </div>
-              </button>
-            </div>
-
-            <button
-              onClick={() => setDeleteModal(null)}
-              className="w-full mt-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
-            >
-              إلغاء
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

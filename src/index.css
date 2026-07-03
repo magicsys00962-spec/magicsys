@@ -122,43 +122,59 @@ input:focus, select:focus, textarea:focus {
 /* Print styles */
 @media print {
   body * {
-    visibility: hidden;
+    visibility: hidden !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
-  .print-invoice, .print-invoice * {
-    visibility: visible;
+  .print-invoice,
+  .print-invoice * {
+    visibility: visible !important;
   }
 
-  .print-area, .print-area * {
-    visibility: visible;
+  .print-area,
+  .print-area * {
+    visibility: visible !important;
   }
 
   .print-invoice {
-    position: fixed;
-    inset: 0;
-    width: 100%;
-    direction: rtl;
-    background: white;
-    font-family: 'Cairo', sans-serif;
-    z-index: 9999;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 100vh !important;
+    margin: 0 !important;
+    padding: 10mm !important;
+    background: white !important;
+    direction: rtl !important;
+    font-family: 'Cairo', sans-serif !important;
+    z-index: 9999 !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
   }
 
   .print-area {
-    position: fixed;
-    inset: 0;
-    width: 100%;
-    direction: rtl;
-    padding: 10mm;
-    background: white;
-    z-index: 9999;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 10mm !important;
+    background: white !important;
+    direction: rtl !important;
+    z-index: 9999 !important;
   }
 
   .no-print {
     display: none !important;
+    visibility: hidden !important;
   }
 
-  aside, header, .sidebar, .top-nav, .notification-bell {
+  aside, header, nav, .sidebar {
     display: none !important;
+    visibility: hidden !important;
   }
 
   main {
@@ -166,13 +182,8 @@ input:focus, select:focus, textarea:focus {
     padding: 0 !important;
   }
 
-  .shadow-card, .shadow-lg {
+  .shadow-card, .shadow-lg, .shadow-md, .shadow-xl {
     box-shadow: none !important;
-  }
-
-  .hidden.print\\:block {
-    display: block !important;
-    visibility: visible !important;
   }
 }
 

@@ -27,11 +27,15 @@ const determinePriceType = (
   _quantity: number,
   userType?: 'CRAFTSMAN' | 'WALK_IN' | 'COMPANY'
 ): { price: number; type: 'retail' | 'wholesale' | 'craftsman' } => {
-  // Craftsman gets craftsman price only if explicitly a craftsman customer
+  // Craftsman gets craftsman price
   if (userType === 'CRAFTSMAN' && product.craftsman_price) {
     return { price: product.craftsman_price, type: 'craftsman' };
   }
-  // Default to retail for everyone else
+  // Company gets wholesale price
+  if (userType === 'COMPANY' && product.wholesale_price) {
+    return { price: product.wholesale_price, type: 'wholesale' };
+  }
+  // Default to retail
   return { price: product.retail_price, type: 'retail' };
 };
 

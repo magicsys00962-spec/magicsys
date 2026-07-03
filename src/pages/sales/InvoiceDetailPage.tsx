@@ -218,7 +218,7 @@ const InvoiceDetailPage: React.FC = () => {
                 <p className="text-sm text-gray-500">
                   {invoice.customer.type === 'CRAFTSMAN' && 'صنايعي'}
                   {invoice.customer.type === 'WALK_IN' && 'زبون عابر'}
-                  {invoice.customer.type === 'COMPANY' && 'شركة'}
+                  {invoice.customer.type === 'COMPANY' && 'جملة'}
                 </p>
               </>
             ) : <p className="text-gray-500">زبون عابر</p>}

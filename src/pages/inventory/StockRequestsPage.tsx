@@ -35,23 +35,26 @@ const StockRequestsPage: React.FC = () => {
   };
 
   const fetchRequests = async () => {
-    if (!user?.warehouse_id) return;
     setLoading(true);
     try {
-      const [{ data: incoming }, { data: sent }] = await Promise.all([
+      if (!user?.warehouse_id) {
+        setLoading(false);
+        return;
+      }
+      const [incomingResult, sentResult] = await Promise.all([
         supabase
           .from('stock_requests')
-          .select('*, from_warehouse:warehouses!stock_requests_from_warehouse_id_fkey(name), to_warehouse:warehouses!stock_requests_to_warehouse_id_fkey(name), requested_by:users!stock_requests_requested_by_id_fkey(name)')
+          .select('*, from_warehouse:warehouses(name), to_warehouse:warehouses(name), requested_by:users(name)')
           .eq('from_warehouse_id', user.warehouse_id)
           .order('created_at', { ascending: false }),
         supabase
           .from('stock_requests')
-          .select('*, from_warehouse:warehouses!stock_requests_from_warehouse_id_fkey(name), to_warehouse:warehouses!stock_requests_to_warehouse_id_fkey(name), requested_by:users!stock_requests_requested_by_id_fkey(name)')
+          .select('*, from_warehouse:warehouses(name), to_warehouse:warehouses(name), requested_by:users(name)')
           .eq('to_warehouse_id', user.warehouse_id)
           .order('created_at', { ascending: false }),
       ]);
-      setIncomingRequests(incoming || []);
-      setSentRequests(sent || []);
+      setIncomingRequests(incomingResult.data || []);
+      setSentRequests(sentResult.data || []);
     } catch (error) {
       console.error('Error:', error);
     } finally {

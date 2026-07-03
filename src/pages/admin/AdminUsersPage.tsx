@@ -548,10 +548,11 @@ const AdminUsersPage: React.FC = () => {
                         <h5 className="font-semibold text-gray-700 text-sm mb-3">{group}</h5>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                           {items.map((item) => (
-                            <label
+                            <div
                               key={item.key}
+                              onClick={() => togglePermission(item.key)}
                               className={clsx(
-                                'flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all',
+                                'flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all select-none',
                                 form.permissions[item.key]
                                   ? 'bg-green-50 border border-green-200'
                                   : 'bg-white border border-gray-200 hover:border-gray-300'
@@ -571,7 +572,7 @@ const AdminUsersPage: React.FC = () => {
                               )}>
                                 {item.label}
                               </span>
-                            </label>
+                            </div>
                           ))}
                         </div>
                       </div>

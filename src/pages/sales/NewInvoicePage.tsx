@@ -58,6 +58,7 @@ const NewInvoicePage: React.FC = () => {
   const [newCustomer, setNewCustomer] = useState({ name: '', phone: '', type: 'WALK_IN' as const });
   const [savedInvoiceId, setSavedInvoiceId] = useState<string | null>(null);
   const [craftsmanPrices, setCraftsmanPrices] = useState<Record<string, number>>({});
+  const [invoiceDiscount, setInvoiceDiscount] = useState(0);
 
   const totals = getTotals();
 
@@ -219,16 +220,11 @@ const NewInvoicePage: React.FC = () => {
   };
 
   const generateInvoiceNumber = async (warehouseCode: string) => {
-    const year = new Date().getFullYear();
-    const prefix = `MAG-${warehouseCode}-${year}`;
-
-    const { count } = await supabase
-      .from('invoices')
-      .select('*', { count: 'exact', head: true })
-      .like('invoice_number', `${prefix}%`);
-
-    const nextNum = (count || 0) + 1;
-    return `${prefix}-${String(nextNum).padStart(5, '0')}`;
+    const { data, error } = await supabase.rpc('generate_invoice_number', {
+      p_warehouse_code: warehouseCode,
+    });
+    if (error || !data) throw new Error('فشل توليد رقم الفاتورة');
+    return data as string;
   };
 
   const handleSaveInvoice = async () => {
@@ -239,6 +235,12 @@ const NewInvoicePage: React.FC = () => {
 
     if (invoiceType === 'CREDIT' && !customer) {
       toast.error('يجب تحديد زبون للفاتورة الدائنة');
+      return;
+    }
+
+    const overStockItems = items.filter((i) => i.quantity > i.product.quantity_in_stock);
+    if (overStockItems.length > 0) {
+      toast.error(`الكمية المطلوبة أكبر من المتوفر للمنتج: ${overStockItems[0].product.name}`);
       return;
     }
 
@@ -289,8 +291,8 @@ const NewInvoicePage: React.FC = () => {
           customer_id: customer?.id || null,
           status: invoiceType,
           total_amount: totals.subtotal,
-          discount_total: totals.discountTotal,
-          net_amount: totals.netTotal,
+          discount_total: totals.discountTotal + invoiceDiscount,
+          net_amount: totals.netTotal - invoiceDiscount,
           credit_due_date: creditDueDate,
           notes: notes || null,
         })
@@ -506,7 +508,7 @@ const NewInvoicePage: React.FC = () => {
                                   : 'bg-gray-100 border-gray-200 text-gray-600 hover:bg-gray-200'
                               )}
                             >
-                              {opt.label}: {Number(opt.price).toFixed(3)}
+                              {opt.label}
                             </button>
                           ))}
                         </div>
@@ -541,7 +543,12 @@ const NewInvoicePage: React.FC = () => {
                               customer?.type
                             )
                           }
-                          className="w-20 text-center py-1.5 rounded-lg border border-gray-300"
+                          className={clsx(
+                            'w-20 text-center py-1.5 rounded-lg border',
+                            item.quantity > item.product.quantity_in_stock
+                              ? 'border-red-400 bg-red-50 text-red-700'
+                              : 'border-gray-300'
+                          )}
                           min="0"
                         />
                         <button
@@ -576,6 +583,13 @@ const NewInvoicePage: React.FC = () => {
                         <span className="text-sm text-gray-500">د.أ</span>
                       </div>
                     </div>
+
+                    {/* Stock warning */}
+                    {item.quantity > item.product.quantity_in_stock && (
+                      <p className="mt-2 text-sm text-red-600 font-medium">
+                        تحذير: الكمية المطلوبة ({item.quantity}) أكبر من المتوفر في المخزن ({item.product.quantity_in_stock})
+                      </p>
+                    )}
 
                     {/* Subtotal */}
                     <div className="mt-3 flex justify-between items-center">
@@ -711,13 +725,37 @@ const NewInvoicePage: React.FC = () => {
                 <span>المجموع الفرعي</span>
                 <span>{totals.subtotal.toFixed(3)} د.أ</span>
               </div>
-              <div className="flex justify-between text-gray-600">
-                <span>الخصم</span>
-                <span className="text-red-500">-{totals.discountTotal.toFixed(3)} د.أ</span>
+              {totals.discountTotal > 0 && (
+                <div className="flex justify-between text-gray-600">
+                  <span>خصم المواد</span>
+                  <span className="text-red-500">-{totals.discountTotal.toFixed(3)} د.أ</span>
+                </div>
+              )}
+              {/* Invoice-level discount */}
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-gray-600 whitespace-nowrap">خصم إضافي</span>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    value={invoiceDiscount || ''}
+                    onChange={(e) => setInvoiceDiscount(Math.max(0, Number(e.target.value)))}
+                    placeholder="0"
+                    min="0"
+                    step="0.001"
+                    className="w-28 px-3 py-1.5 rounded-lg border border-gray-300 text-left text-sm ltr-text"
+                  />
+                  <span className="text-gray-500 text-sm">د.أ</span>
+                </div>
               </div>
+              {invoiceDiscount > 0 && (
+                <div className="flex justify-between text-red-500 text-sm font-medium">
+                  <span>المجموع بعد الخصم الإضافي</span>
+                  <span>-{invoiceDiscount.toFixed(3)} د.أ</span>
+                </div>
+              )}
               <div className="border-t border-gray-200 pt-3 flex justify-between text-lg font-bold">
                 <span>الإجمالي</span>
-                <span className="text-gold-600">{totals.netTotal.toFixed(3)} د.أ</span>
+                <span className="text-gold-600">{(totals.netTotal - invoiceDiscount).toFixed(3)} د.أ</span>
               </div>
             </div>
 
@@ -800,7 +838,7 @@ const NewInvoicePage: React.FC = () => {
                 >
                   <option value="WALK_IN">زبون عابر</option>
                   <option value="CRAFTSMAN">صنايعي</option>
-                  <option value="COMPANY">شركة</option>
+                  <option value="COMPANY">جملة</option>
                 </select>
               </div>
             </div>

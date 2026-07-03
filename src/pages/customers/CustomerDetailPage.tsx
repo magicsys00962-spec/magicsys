@@ -157,7 +157,7 @@ const CustomerDetailPage: React.FC = () => {
     switch (type) {
       case 'WALK_IN': return 'زبون عابر';
       case 'CRAFTSMAN': return 'صنايعي';
-      case 'COMPANY': return 'شركة';
+      case 'COMPANY': return 'جملة';
       default: return type;
     }
   };
