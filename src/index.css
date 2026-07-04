@@ -353,22 +353,36 @@ input:focus, select:focus, textarea:focus {
   display: flex;
   justify-content: space-between;
   margin-bottom: 12px;
+  padding: 0 20px;
 }
 
 .invoice-sig-block {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  font-weight: 600;
+  gap: 0;
+  min-width: 160px;
+}
+
+.invoice-sig-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin-bottom: 4px;
+  min-height: 18px;
 }
 
 .invoice-sig-line {
-  width: 150px;
+  width: 160px;
   border-bottom: 1px solid #333;
-  margin-bottom: 4px;
-  height: 30px;
+  height: 36px;
+  margin-bottom: 6px;
+}
+
+.invoice-sig-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #444;
 }
 
 .invoice-contact {

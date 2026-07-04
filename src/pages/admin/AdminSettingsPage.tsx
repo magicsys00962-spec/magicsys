@@ -20,6 +20,16 @@ const SETTING_LABELS: Record<string, { label: string; description: string; type:
     description: 'يظهر في الفواتير المطبوعة',
     type: 'text',
   },
+  company_email: {
+    label: 'البريد الإلكتروني',
+    description: 'يظهر في ذيل الفواتير المطبوعة',
+    type: 'text',
+  },
+  company_facebook: {
+    label: 'صفحة فيسبوك',
+    description: 'يظهر في ذيل الفواتير المطبوعة',
+    type: 'text',
+  },
   company_address: {
     label: 'عنوان الشركة',
     description: 'يظهر في الفواتير المطبوعة',

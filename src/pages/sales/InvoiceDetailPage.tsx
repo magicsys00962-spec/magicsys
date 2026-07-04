@@ -320,16 +320,26 @@ const InvoiceDetailPage: React.FC = () => {
           <div className="invoice-footer">
             <div className="invoice-signatures">
               <div className="invoice-sig-block">
+                <p className="invoice-sig-name">{invoice.employee?.name || ''}</p>
                 <div className="invoice-sig-line"></div>
-                <span>توقيع الموظف:</span>
+                <span className="invoice-sig-label">توقيع الموظف</span>
               </div>
               <div className="invoice-sig-block">
+                <p className="invoice-sig-name">{invoice.customer?.name || 'زبون عابر'}</p>
                 <div className="invoice-sig-line"></div>
-                <span>توقيع العميل:</span>
+                <span className="invoice-sig-label">توقيع العميل</span>
               </div>
             </div>
             <div className="invoice-contact">
-              <span>رقم الهاتف: {settings.company_phone || (invoice.warehouse as any)?.phone || ''}</span>
+              {(settings.company_phone || (invoice.warehouse as any)?.phone) && (
+                <span>رقم الهاتف: {settings.company_phone || (invoice.warehouse as any)?.phone}</span>
+              )}
+              {settings.company_facebook && (
+                <span>فيسبوك: {settings.company_facebook}</span>
+              )}
+              {settings.company_email && (
+                <span>البريد: {settings.company_email}</span>
+              )}
             </div>
           </div>
         </div>
