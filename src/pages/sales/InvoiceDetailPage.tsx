@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowRight, Printer, CheckCircle, Clock, AlertTriangle, CreditCard, RotateCcw, Download, X } from 'lucide-react';
+import { ArrowRight, Printer, RotateCcw, Download, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuthStore, hasPermission } from '../../stores/authStore';
 import type { Invoice, InvoiceItem } from '../../types';
-import Logo from '../../components/Logo';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
 
@@ -30,10 +29,21 @@ const InvoiceDetailPage: React.FC = () => {
   const [returnNotes, setReturnNotes] = useState('');
   const [processingReturn, setProcessingReturn] = useState(false);
   const [existingReturns, setExistingReturns] = useState<any[]>([]);
+  const [settings, setSettings] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (id) fetchInvoice(id);
+    fetchSettings();
   }, [id]);
+
+  const fetchSettings = async () => {
+    const { data } = await supabase.from('system_settings').select('*');
+    if (data) {
+      const map: Record<string, string> = {};
+      data.forEach((row: any) => { map[row.setting_key] = row.setting_value; });
+      setSettings(map);
+    }
+  };
 
   const fetchInvoice = async (invoiceId: string) => {
     setLoading(true);
@@ -66,14 +76,10 @@ const InvoiceDetailPage: React.FC = () => {
     }
   };
 
-  const getStatusConfig = (status: string, overdue?: boolean) => {
-    if (status === 'PAID') return { label: 'مدفوعة', icon: CheckCircle, color: 'bg-green-100 text-green-700' };
-    if (status === 'PENDING') return { label: 'معلقة', icon: Clock, color: 'bg-amber-100 text-amber-700' };
-    if (status === 'CREDIT') {
-      if (overdue) return { label: 'متأخرة', icon: AlertTriangle, color: 'bg-red-100 text-red-700' };
-      return { label: 'دائن', icon: CreditCard, color: 'bg-orange-100 text-orange-700' };
-    }
-    return { label: status, icon: Clock, color: 'bg-gray-100 text-gray-700' };
+  const getPaymentMethod = (status: string) => {
+    if (status === 'PAID') return 'كاش';
+    if (status === 'CREDIT') return 'دائن';
+    return 'معلقة';
   };
 
   const handlePrint = () => { window.print(); };
@@ -140,20 +146,21 @@ const InvoiceDetailPage: React.FC = () => {
     }
   };
 
-  const formatDate = (dateStr: string) => new Date(dateStr).toLocaleDateString('ar-JO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const formatDateShort = (dateStr: string) => new Date(dateStr).toLocaleDateString('ar-JO');
   const formatTime = (dateStr: string) => new Date(dateStr).toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' });
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="spinner" /></div>;
   if (!invoice) return null;
 
-  const statusConfig = getStatusConfig(invoice.status, invoice.credit_overdue);
-  const StatusIcon = statusConfig.icon;
   const canReturn = user?.role === 'ADMIN' || hasPermission(user, 'returns');
   const totalReturns = existingReturns.reduce((s, r) => s + Number(r.total_return_amount), 0);
 
+  const MIN_TABLE_ROWS = 12;
+  const emptyRowsCount = Math.max(0, MIN_TABLE_ROWS - items.length);
+
   return (
     <div className="max-w-4xl mx-auto animate-fade-in">
-      {/* Actions bar */}
+      {/* Actions bar - hidden on print */}
       <div className="flex items-center justify-between mb-6 no-print">
         <button onClick={() => navigate('/sales/invoices')} className="flex items-center gap-2 text-gray-600 hover:text-gray-800">
           <ArrowRight size={20} />
@@ -177,133 +184,153 @@ const InvoiceDetailPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Invoice */}
-      <div className="bg-white rounded-xl shadow-card print-invoice" id="invoice-print">
-        {/* Header */}
-        <div className="p-8 border-b border-gray-200">
-          <div className="flex justify-between items-start">
-            <div><Logo variant="full" size="md" theme="light" /></div>
-            <div className="text-left space-y-1">
-              <h2 className="text-xl font-bold text-gray-800">فاتورة بيع</h2>
-              <p className="font-mono text-lg font-bold text-gold-600">{invoice.invoice_number}</p>
-              <span className={clsx('inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold', statusConfig.color)}>
-                <StatusIcon size={14} />
-                {statusConfig.label}
-              </span>
+      {/* Returns history - screen only */}
+      {existingReturns.length > 0 && (
+        <div className="mb-6 bg-white rounded-xl shadow-card p-6 no-print">
+          <h3 className="font-semibold text-red-700 mb-3">سجل المرتجعات:</h3>
+          <div className="space-y-2">
+            {existingReturns.map((ret) => (
+              <div key={ret.id} className="flex items-center justify-between bg-red-50 px-4 py-2 rounded-lg text-sm">
+                <div>
+                  <span className="font-medium">{new Date(ret.created_at).toLocaleDateString('ar')}</span>
+                  <span className="mx-2 text-gray-400">|</span>
+                  <span className="text-gray-600">{ret.employee?.name}</span>
+                  {ret.notes && <span className="mx-2 text-gray-500">({ret.notes})</span>}
+                </div>
+                <span className="font-bold text-red-600">-{Number(ret.total_return_amount).toFixed(3)} د.أ</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ========== PRINTABLE INVOICE ========== */}
+      <div className="print-invoice bg-white" id="invoice-print">
+        <div className="invoice-inner">
+          {/* === HEADER === */}
+          <div className="invoice-header">
+            {/* Right side - Title */}
+            <div className="invoice-header-right">
+              <h1 className="invoice-title">فاتورة بيع</h1>
+              <div className="invoice-meta">
+                <span>الرقم: <strong>{invoice.invoice_number}</strong></span>
+                <span>طريقة الدفع: <strong>{getPaymentMethod(invoice.status)}</strong></span>
+              </div>
+            </div>
+
+            {/* Center - Logo */}
+            <div className="invoice-header-center">
+              <div className="invoice-logo-box">
+                <img src="/image.png" alt="Logo" className="invoice-logo-img" />
+              </div>
+            </div>
+
+            {/* Left side - Info fields */}
+            <div className="invoice-header-left">
+              <div className="invoice-info-row">
+                <span className="invoice-info-label">التاريخ:</span>
+                <span className="invoice-info-value">{formatDateShort(invoice.created_at)}</span>
+              </div>
+              <div className="invoice-info-row">
+                <span className="invoice-info-label">الوقت:</span>
+                <span className="invoice-info-value">{formatTime(invoice.created_at)}</span>
+              </div>
+              <div className="invoice-info-row">
+                <span className="invoice-info-label">المخزن:</span>
+                <span className="invoice-info-value">{invoice.warehouse?.name || '-'}</span>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Date/Time/Employee bar */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-6 bg-gray-50 border-b border-gray-200 text-sm">
-          <div><span className="text-gray-500">التاريخ:</span><p className="font-semibold text-gray-800">{formatDate(invoice.created_at)}</p></div>
-          <div><span className="text-gray-500">الوقت:</span><p className="font-semibold text-gray-800">{formatTime(invoice.created_at)}</p></div>
-          <div><span className="text-gray-500">الموظف:</span><p className="font-semibold text-gray-800">{invoice.employee?.name || '-'}</p></div>
-        </div>
-
-        {/* From/To */}
-        <div className="grid grid-cols-2 gap-8 p-8 border-b border-gray-200">
-          <div>
-            <h3 className="text-sm font-semibold text-gray-500 mb-2">من (المخزن):</h3>
-            <p className="font-semibold text-gray-800">{invoice.warehouse?.name}</p>
-            <p className="text-sm text-gray-600">{(invoice.warehouse as any)?.address}</p>
-            <p className="text-sm text-gray-600">{(invoice.warehouse as any)?.phone}</p>
+          {/* === CUSTOMER LINE === */}
+          <div className="invoice-customer-line">
+            <span className="invoice-customer-label">اسم العميل:</span>
+            <span className="invoice-customer-name">{invoice.customer?.name || 'زبون عابر'}</span>
+            <span className="invoice-customer-underline"></span>
           </div>
-          <div>
-            <h3 className="text-sm font-semibold text-gray-500 mb-2">إلى (الزبون):</h3>
-            {invoice.customer ? (
-              <>
-                <p className={clsx('font-semibold', invoice.credit_overdue && 'text-red-600')}>{invoice.customer.name}</p>
-                {invoice.customer.phone && <p className="text-sm text-gray-600">{invoice.customer.phone}</p>}
-                <p className="text-sm text-gray-500">
-                  {invoice.customer.type === 'CRAFTSMAN' && 'صنايعي'}
-                  {invoice.customer.type === 'WALK_IN' && 'زبون عابر'}
-                  {invoice.customer.type === 'COMPANY' && 'جملة'}
-                </p>
-              </>
-            ) : <p className="text-gray-500">زبون عابر</p>}
-          </div>
-        </div>
 
-        {/* Items table */}
-        <div className="p-6 overflow-x-auto">
-          <table className="w-full text-sm">
+          {/* === ITEMS TABLE === */}
+          <table className="invoice-table">
             <thead>
-              <tr className="bg-gray-50">
-                <th className="px-3 py-3 text-right font-semibold text-gray-700">#</th>
-                <th className="px-3 py-3 text-right font-semibold text-gray-700">المنتج</th>
-                <th className="px-3 py-3 text-right font-semibold text-gray-700">اللون</th>
-                <th className="px-3 py-3 text-right font-semibold text-gray-700">الكمية</th>
-                <th className="px-3 py-3 text-right font-semibold text-gray-700">سعر الحبة</th>
-                <th className="px-3 py-3 text-right font-semibold text-gray-700">الخصم</th>
-                <th className="px-3 py-3 text-right font-semibold text-gray-700">الإجمالي</th>
+              <tr>
+                <th>المنتج</th>
+                <th>الكود</th>
+                <th>الكمية</th>
+                <th>الوحدة</th>
+                <th>سعر الحبة</th>
+                <th>الخصم</th>
+                <th>السعر الإجمالي</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
-              {items.map((item, idx) => (
+            <tbody>
+              {items.map((item) => (
                 <tr key={item.id}>
-                  <td className="px-3 py-3 text-gray-500">{idx + 1}</td>
-                  <td className="px-3 py-3 font-medium">{item.product_name}</td>
-                  <td className="px-3 py-3 text-gray-600">{item.color_name || '-'}</td>
-                  <td className="px-3 py-3">{item.quantity}</td>
-                  <td className="px-3 py-3">{Number(item.unit_price).toFixed(3)} د.أ</td>
-                  <td className="px-3 py-3 text-red-500">{Number(item.discount_amount) > 0 ? `- ${Number(item.discount_amount).toFixed(3)}` : '-'}</td>
-                  <td className="px-3 py-3 font-semibold">{Number(item.subtotal).toFixed(3)} د.أ</td>
+                  <td className="item-name">{item.product_name}{item.color_name ? ` (${item.color_name})` : ''}</td>
+                  <td>{item.product_id?.slice(0, 6) || '-'}</td>
+                  <td>{item.quantity}</td>
+                  <td>حبة</td>
+                  <td>{Number(item.unit_price).toFixed(3)}</td>
+                  <td>{Number(item.discount_amount) > 0 ? Number(item.discount_amount).toFixed(3) : '-'}</td>
+                  <td className="item-total">{Number(item.subtotal).toFixed(3)}</td>
+                </tr>
+              ))}
+              {Array.from({ length: emptyRowsCount }).map((_, idx) => (
+                <tr key={`empty-${idx}`} className="empty-row">
+                  <td>&nbsp;</td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
 
-        {/* Totals */}
-        <div className="p-8 bg-gray-50 border-t border-gray-200">
-          <div className="flex justify-end">
-            <div className="w-80 space-y-3">
-              <div className="flex justify-between text-gray-600"><span>المجموع الفرعي:</span><span>{Number(invoice.total_amount).toFixed(3)} د.أ</span></div>
-              <div className="flex justify-between text-gray-600"><span>إجمالي الخصم:</span><span className="text-red-500">-{Number(invoice.discount_total).toFixed(3)} د.أ</span></div>
-              <div className="border-t border-gray-300 pt-3 flex justify-between text-xl font-bold"><span>الإجمالي النهائي:</span><span className="text-gold-600">{Number(invoice.net_amount).toFixed(3)} د.أ</span></div>
+          {/* === BOTTOM: Notes + Totals side by side === */}
+          <div className="invoice-bottom">
+            <div className="invoice-notes-box">
+              <span className="invoice-notes-label">ملاحظات:</span>
+              <p className="invoice-notes-text">{invoice.notes || ''}</p>
+              {invoice.status === 'CREDIT' && invoice.credit_due_date && (
+                <p className="invoice-notes-text">تاريخ الاستحقاق: {new Date(invoice.credit_due_date).toLocaleDateString('ar')}</p>
+              )}
               {totalReturns > 0 && (
-                <div className="flex justify-between text-red-600 font-semibold"><span>المرتجعات:</span><span>-{totalReturns.toFixed(3)} د.أ</span></div>
+                <p className="invoice-notes-text" style={{ color: '#dc2626' }}>المرتجعات: -{totalReturns.toFixed(3)} د.أ</p>
               )}
             </div>
-          </div>
-          {invoice.status === 'CREDIT' && invoice.credit_due_date && (
-            <div className="mt-4 flex justify-end"><p className="text-sm text-gray-600">تاريخ الاستحقاق: {new Date(invoice.credit_due_date).toLocaleDateString('ar')}</p></div>
-          )}
-        </div>
-
-        {/* Notes */}
-        {invoice.notes && (
-          <div className="px-8 py-4 border-t border-gray-200">
-            <p className="text-sm text-gray-600"><span className="font-semibold">ملاحظات:</span> {invoice.notes}</p>
-          </div>
-        )}
-
-        {/* Returns history */}
-        {existingReturns.length > 0 && (
-          <div className="px-8 py-4 border-t border-gray-200">
-            <h3 className="font-semibold text-red-700 mb-2">سجل المرتجعات:</h3>
-            <div className="space-y-2">
-              {existingReturns.map((ret) => (
-                <div key={ret.id} className="flex items-center justify-between bg-red-50 px-4 py-2 rounded-lg text-sm">
-                  <div>
-                    <span className="font-medium">{new Date(ret.created_at).toLocaleDateString('ar')}</span>
-                    <span className="mx-2 text-gray-400">|</span>
-                    <span className="text-gray-600">{ret.employee?.name}</span>
-                    {ret.notes && <span className="mx-2 text-gray-500">({ret.notes})</span>}
-                  </div>
-                  <span className="font-bold text-red-600">-{Number(ret.total_return_amount).toFixed(3)} د.أ</span>
-                </div>
-              ))}
+            <div className="invoice-totals-box">
+              <div className="invoice-total-row">
+                <span>المجموع:</span>
+                <span>{Number(invoice.total_amount).toFixed(3)} د.أ</span>
+              </div>
+              <div className="invoice-total-row">
+                <span>إجمالي الخصم:</span>
+                <span>{Number(invoice.discount_total).toFixed(3)} د.أ</span>
+              </div>
+              <div className="invoice-total-row invoice-final-total">
+                <span>السعر النهائي بعد الخصم:</span>
+                <span>{Number(invoice.net_amount).toFixed(3)} د.أ</span>
+              </div>
             </div>
           </div>
-        )}
 
-        {/* Footer */}
-        <div className="p-8 border-t border-gray-200">
-          <div className="grid grid-cols-2 gap-8">
-            <div className="text-center"><div className="border-t border-gray-300 pt-2 mt-16"><p className="text-sm text-gray-500">توقيع الموظف</p><p className="font-semibold mt-1">{invoice.employee?.name}</p></div></div>
-            <div className="text-center"><div className="border-t border-gray-300 pt-2 mt-16"><p className="text-sm text-gray-500">توقيع الزبون</p></div></div>
+          {/* === FOOTER: Signatures + Contact === */}
+          <div className="invoice-footer">
+            <div className="invoice-signatures">
+              <div className="invoice-sig-block">
+                <div className="invoice-sig-line"></div>
+                <span>توقيع الموظف:</span>
+              </div>
+              <div className="invoice-sig-block">
+                <div className="invoice-sig-line"></div>
+                <span>توقيع العميل:</span>
+              </div>
+            </div>
+            <div className="invoice-contact">
+              <span>رقم الهاتف: {settings.company_phone || (invoice.warehouse as any)?.phone || ''}</span>
+            </div>
           </div>
         </div>
       </div>
